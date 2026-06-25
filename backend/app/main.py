@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -20,6 +20,19 @@ app = FastAPI(
     version="0.1.0",
 )
 
+# Must be defined before add_middleware(CORSMiddleware) so that Starlette inserts
+# this middleware inside CORS (not outside it). The build order is:
+#   ServerErrorMiddleware → CORSMiddleware → this middleware → ExceptionMiddleware → Router
+# Exceptions caught here return a response that still flows through CORSMiddleware.
+@app.middleware("http")
+async def catch_unhandled_exceptions(request: Request, call_next):
+    try:
+        return await call_next(request)
+    except Exception as exc:
+        logger.exception("Unhandled exception while processing %s %s", request.method, request.url)
+        return JSONResponse(status_code=500, content={"detail": "Internal server error."})
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
@@ -32,12 +45,6 @@ app.add_middleware(
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request, exc: HTTPException):
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
-
-
-@app.exception_handler(Exception)
-async def unhandled_exception_handler(request, exc: Exception):
-    logger.exception("Unhandled exception while processing %s %s", request.method, request.url)
-    return JSONResponse(status_code=500, content={"detail": "Internal server error."})
 
 
 @app.get("/health", response_model=HealthResponse)
