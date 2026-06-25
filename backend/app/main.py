@@ -51,3 +51,5 @@ app.include_router(resume_router)
 @app.on_event("startup")
 async def on_startup() -> None:
     logger.info("%s started in '%s' mode", settings.app_name, settings.app_env)
+    logger.info("CORS_ORIGINS env = %s", settings.cors_origins)
+    logger.info("Parsed origins = %s", settings.cors_origin_list)
