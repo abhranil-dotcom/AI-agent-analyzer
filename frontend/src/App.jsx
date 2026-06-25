@@ -19,8 +19,19 @@ export default function App() {
       const data = await uploadResume(file)
       setResult(data)
     } catch (err) {
-      const message =
-        err.response?.data?.detail || 'Failed to upload and extract resume. Please try again.'
+      let message
+      if (err.response?.data?.detail) {
+        // Server returned a structured error (415, 413, 422, etc.)
+        message = err.response.data.detail
+      } else if (!err.response && err.request) {
+        // Request was sent but browser received no response — almost always a CORS
+        // block. Server logs show 200 OK but the browser discards the response because
+        // CORS_ORIGINS on Render does not include this Vercel origin.
+        // The [API] log in the browser console (F12) will confirm this.
+        message = 'Could not reach the server. Open the browser console (F12) and look for the [API] log to see the exact error.'
+      } else {
+        message = 'Failed to upload and extract resume. Please try again.'
+      }
       setError(message)
     } finally {
       setIsLoading(false)
