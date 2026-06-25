@@ -12,4 +12,4 @@ services:
       - key: DEBUG
         value: "false"
       - key: CORS_ORIGINS
-        sync: false
+        value: "https://ai-agent-analyzer-beta.vercel.app,http://localhost:5173,http://127.0.0.1:5173"
