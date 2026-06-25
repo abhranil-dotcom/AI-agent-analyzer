@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -sI https://registry.npmjs.org/react)",
+      "Bash(curl -v https://registry.npmjs.org/react)",
+      "Bash(taskkill //F //IM node.exe)",
+      "Bash(npm config *)",
+      "Bash(npm install *)"
+    ]
+  }
+}
