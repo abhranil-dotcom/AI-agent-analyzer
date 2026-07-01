@@ -7,7 +7,7 @@ function formatBytes(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-export default function ResumeUpload({ onUpload, isLoading }) {
+export default function ResumeUpload({ onUpload, isLoading, loadingMessage = 'Extracting text…' }) {
   const [selectedFile, setSelectedFile] = useState(null)
   const [isDragActive, setIsDragActive] = useState(false)
   const inputRef = useRef(null)
@@ -113,7 +113,7 @@ export default function ResumeUpload({ onUpload, isLoading }) {
           {isLoading ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              Extracting text…
+              {loadingMessage}
             </>
           ) : (
             <>

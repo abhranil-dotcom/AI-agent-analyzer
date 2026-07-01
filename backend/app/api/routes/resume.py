@@ -2,8 +2,13 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 
+from app.agent.resume_analyzer import ResumeAnalyzerAgent, get_resume_agent
 from app.core.config import Settings, get_settings
-from app.models.schemas import ResumeUploadResponse
+from app.models.schemas import (
+    AnalyzeResumeRequest,
+    AnalyzeResumeResponse,
+    ResumeUploadResponse,
+)
 from app.services.pdf_extractor import PDFExtractionError, extract_text_from_pdf
 
 logger = logging.getLogger(__name__)
@@ -50,3 +55,21 @@ async def upload_resume(
         character_count=len(extracted_text),
         extracted_text=extracted_text,
     )
+
+
+@router.post("/analyze", response_model=AnalyzeResumeResponse)
+async def analyze_resume(
+    body: AnalyzeResumeRequest,
+    agent: ResumeAnalyzerAgent = Depends(get_resume_agent),
+) -> AnalyzeResumeResponse:
+    """Pass extracted resume text to the analysis agent and return structured results."""
+    try:
+        analysis = await agent.analyze(body.extracted_text)
+    except Exception as exc:
+        logger.exception("Resume analysis failed: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="The analysis service is unavailable. Please try again shortly.",
+        ) from exc
+
+    return AnalyzeResumeResponse(analysis=analysis)

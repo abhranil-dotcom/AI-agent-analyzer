@@ -18,13 +18,8 @@ apiClient.interceptors.response.use(
   },
   (error) => {
     if (error.response) {
-      // Server replied with a non-2xx status code.
       console.error('[API] ← HTTP error', error.response.status, error.response.data)
     } else if (error.request) {
-      // Request was made but the browser received no response.
-      // This is almost always a CORS block: the server returns 200 but
-      // the browser discards it because the response lacks the correct
-      // Access-Control-Allow-Origin header.
       console.error(
         '[API] ← No response received — likely CORS block.',
         'Check: is CORS_ORIGINS set in the Render dashboard to include the Vercel URL?',
@@ -42,5 +37,12 @@ export async function uploadResume(file) {
   formData.append('file', file)
 
   const response = await apiClient.post('/api/resume/upload', formData)
+  return response.data
+}
+
+export async function analyzeResume(extractedText) {
+  const response = await apiClient.post('/api/resume/analyze', {
+    extracted_text: extractedText,
+  })
   return response.data
 }

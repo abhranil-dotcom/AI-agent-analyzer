@@ -16,6 +16,13 @@ class Settings(BaseSettings):
 
     max_upload_size_mb: int = 10
 
+    # Azure OpenAI — all values must be set in the environment; no secrets as defaults.
+    azure_openai_api_key: str = ""
+    azure_openai_endpoint: str = ""
+    azure_openai_api_version: str = "2024-12-01-preview"
+    azure_openai_chat_deployment: str = ""
+    azure_openai_embeddings_deployment: str = ""
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]

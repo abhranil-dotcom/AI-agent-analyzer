@@ -4,37 +4,46 @@ import Header from './components/Header.jsx'
 import Footer from './components/Footer.jsx'
 import ResumeUpload from './components/ResumeUpload.jsx'
 import ExtractedText from './components/ExtractedText.jsx'
-import { uploadResume } from './api/client.js'
+import AnalysisResult from './components/AnalysisResult.jsx'
+import { uploadResume, analyzeResume } from './api/client.js'
 
 export default function App() {
   const [result, setResult] = useState(null)
+  const [analysis, setAnalysis] = useState(null)
   const [error, setError] = useState(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const [loadingStage, setLoadingStage] = useState(null) // 'uploading' | 'analyzing' | null
+
+  const isLoading = loadingStage !== null
+  const loadingMessage = loadingStage === 'analyzing' ? 'Analysing resume…' : 'Extracting text…'
 
   async function handleUpload(file) {
-    setIsLoading(true)
+    setLoadingStage('uploading')
     setError(null)
     setResult(null)
+    setAnalysis(null)
+
     try {
+      // Step 1 — extract text from PDF
       const data = await uploadResume(file)
       setResult(data)
+
+      // Step 2 — run analysis agent
+      setLoadingStage('analyzing')
+      const { analysis: analysisData } = await analyzeResume(data.extracted_text)
+      setAnalysis(analysisData)
     } catch (err) {
       let message
       if (err.response?.data?.detail) {
-        // Server returned a structured error (415, 413, 422, etc.)
         message = err.response.data.detail
       } else if (!err.response && err.request) {
-        // Request was sent but browser received no response — almost always a CORS
-        // block. Server logs show 200 OK but the browser discards the response because
-        // CORS_ORIGINS on Render does not include this Vercel origin.
-        // The [API] log in the browser console (F12) will confirm this.
-        message = 'Could not reach the server. Open the browser console (F12) and look for the [API] log to see the exact error.'
+        message =
+          'Could not reach the server. Open the browser console (F12) and look for the [API] log to see the exact error.'
       } else {
-        message = 'Failed to upload and extract resume. Please try again.'
+        message = 'Something went wrong. Please try again.'
       }
       setError(message)
     } finally {
-      setIsLoading(false)
+      setLoadingStage(null)
     }
   }
 
@@ -51,18 +60,19 @@ export default function App() {
         <div className="mb-12 text-center">
           <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-brand-500/30 bg-brand-500/10 px-4 py-1.5 text-xs font-semibold tracking-wide text-brand-600 dark:text-brand-400">
             <span className="h-1.5 w-1.5 rounded-full bg-brand-500 dark:bg-brand-400 animate-pulse" />
-            Milestone 1 &middot; Resume Upload &amp; Extraction
+            Milestone 2 &middot; AI Resume Analysis
           </div>
           <h1 className="pb-1 text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl bg-gradient-to-br from-slate-900 via-slate-700 to-slate-500 bg-clip-text text-transparent dark:from-white dark:via-slate-200 dark:to-slate-500">
             AI-powered resume<br />intelligence
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-slate-500 dark:text-slate-400">
-            Upload your PDF resume to extract and analyze its content — the foundation for ATS scoring, skill mapping, and career guidance.
+            Upload your PDF resume to receive an instant AI analysis — ATS score, skill gaps,
+            strengths, weaknesses, and actionable improvement suggestions.
           </p>
         </div>
 
         <div className="flex flex-col gap-6">
-          <ResumeUpload onUpload={handleUpload} isLoading={isLoading} />
+          <ResumeUpload onUpload={handleUpload} isLoading={isLoading} loadingMessage={loadingMessage} />
 
           {error && (
             <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-400">
@@ -71,6 +81,7 @@ export default function App() {
             </div>
           )}
 
+          <AnalysisResult analysis={analysis} />
           <ExtractedText result={result} />
         </div>
       </main>
