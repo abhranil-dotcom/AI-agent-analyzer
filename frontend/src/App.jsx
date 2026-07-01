@@ -1,51 +1,14 @@
 import { useState } from 'react'
-import { AlertTriangle } from 'lucide-react'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import Header from './components/Header.jsx'
 import Footer from './components/Footer.jsx'
-import ResumeUpload from './components/ResumeUpload.jsx'
-import ExtractedText from './components/ExtractedText.jsx'
-import AnalysisResult from './components/AnalysisResult.jsx'
-import { uploadResume, analyzeResume } from './api/client.js'
+import UploadPage from './pages/UploadPage.jsx'
+import AnalysisPage from './pages/AnalysisPage.jsx'
 
 export default function App() {
+  // Extraction result is lifted here so it survives navigation between
+  // the upload and analysis pages without re-hitting the API.
   const [result, setResult] = useState(null)
-  const [analysis, setAnalysis] = useState(null)
-  const [error, setError] = useState(null)
-  const [loadingStage, setLoadingStage] = useState(null) // 'uploading' | 'analyzing' | null
-
-  const isLoading = loadingStage !== null
-  const loadingMessage = loadingStage === 'analyzing' ? 'Analysing resume…' : 'Extracting text…'
-
-  async function handleUpload(file) {
-    setLoadingStage('uploading')
-    setError(null)
-    setResult(null)
-    setAnalysis(null)
-
-    try {
-      // Step 1 — extract text from PDF
-      const data = await uploadResume(file)
-      setResult(data)
-
-      // Step 2 — run analysis agent
-      setLoadingStage('analyzing')
-      const { analysis: analysisData } = await analyzeResume(data.extracted_text)
-      setAnalysis(analysisData)
-    } catch (err) {
-      let message
-      if (err.response?.data?.detail) {
-        message = err.response.data.detail
-      } else if (!err.response && err.request) {
-        message =
-          'Could not reach the server. Open the browser console (F12) and look for the [API] log to see the exact error.'
-      } else {
-        message = 'Something went wrong. Please try again.'
-      }
-      setError(message)
-    } finally {
-      setLoadingStage(null)
-    }
-  }
 
   return (
     <div className="relative flex min-h-screen flex-col bg-slate-50 dark:bg-[#080b14]">
@@ -56,34 +19,13 @@ export default function App() {
       <Header />
 
       <main className="relative mx-auto w-full max-w-5xl flex-1 px-6 py-12">
-        {/* Hero section */}
-        <div className="mb-12 text-center">
-          <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-brand-500/30 bg-brand-500/10 px-4 py-1.5 text-xs font-semibold tracking-wide text-brand-600 dark:text-brand-400">
-            <span className="h-1.5 w-1.5 rounded-full bg-brand-500 dark:bg-brand-400 animate-pulse" />
-            Milestone 2 &middot; AI Resume Analysis
-          </div>
-          <h1 className="pb-1 text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl bg-gradient-to-br from-slate-900 via-slate-700 to-slate-500 bg-clip-text text-transparent dark:from-white dark:via-slate-200 dark:to-slate-500">
-            AI-powered resume<br />intelligence
-          </h1>
-          <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-slate-500 dark:text-slate-400">
-            Upload your PDF resume to receive an instant AI analysis — ATS score, skill gaps,
-            strengths, weaknesses, and actionable improvement suggestions.
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-6">
-          <ResumeUpload onUpload={handleUpload} isLoading={isLoading} loadingMessage={loadingMessage} />
-
-          {error && (
-            <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-400">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          <AnalysisResult analysis={analysis} />
-          <ExtractedText result={result} />
-        </div>
+        <Routes>
+          <Route path="/" element={<UploadPage result={result} onExtracted={setResult} />} />
+          <Route
+            path="/analysis"
+            element={result ? <AnalysisPage result={result} /> : <Navigate to="/" replace />}
+          />
+        </Routes>
       </main>
 
       <Footer />
