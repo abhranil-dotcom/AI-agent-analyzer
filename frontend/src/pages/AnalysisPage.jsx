@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { AlertTriangle, ArrowLeft, Loader2 } from 'lucide-react'
+import { AlertTriangle, ArrowLeft } from 'lucide-react'
 import AnalysisResult from '../components/AnalysisResult.jsx'
+import AnalysisSkeleton from '../components/AnalysisSkeleton.jsx'
+import Stepper from '../components/Stepper.jsx'
 import { analyzeResume } from '../api/client.js'
 
 export default function AnalysisPage({ result }) {
@@ -53,12 +55,10 @@ export default function AnalysisPage({ result }) {
         Back to upload
       </button>
 
+      <Stepper currentStep={2} />
+
       {/* Hero section */}
       <div className="mb-12 text-center">
-        <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-brand-500/30 bg-brand-500/10 px-4 py-1.5 text-xs font-semibold tracking-wide text-brand-600 dark:text-brand-400">
-          <span className="h-1.5 w-1.5 rounded-full bg-brand-500 dark:bg-brand-400 animate-pulse" />
-          Step 2 &middot; AI Analysis
-        </div>
         <h1 className="pb-1 text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl bg-gradient-to-br from-slate-900 via-slate-700 to-slate-500 bg-clip-text text-transparent dark:from-white dark:via-slate-200 dark:to-slate-500">
           Your resume, analyzed
         </h1>
@@ -69,12 +69,7 @@ export default function AnalysisPage({ result }) {
       </div>
 
       <div className="flex flex-col gap-6">
-        {isLoading && (
-          <div className="flex items-center justify-center gap-3 rounded-2xl border border-slate-200/60 bg-white/90 p-10 text-sm font-semibold text-slate-500 shadow-xl backdrop-blur-xl dark:border-white/[0.08] dark:bg-slate-900/80 dark:text-slate-400">
-            <Loader2 className="h-5 w-5 animate-spin" />
-            Analysing resume…
-          </div>
-        )}
+        {isLoading && <AnalysisSkeleton />}
 
         {error && (
           <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-400">

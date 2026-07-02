@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { AlertTriangle, ArrowRight } from 'lucide-react'
 import ResumeUpload from '../components/ResumeUpload.jsx'
 import ExtractedText from '../components/ExtractedText.jsx'
+import Stepper from '../components/Stepper.jsx'
 import { uploadResume } from '../api/client.js'
 
 export default function UploadPage({ result, onExtracted }) {
@@ -36,12 +37,10 @@ export default function UploadPage({ result, onExtracted }) {
 
   return (
     <>
+      <Stepper currentStep={1} />
+
       {/* Hero section */}
       <div className="mb-12 text-center">
-        <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-brand-500/30 bg-brand-500/10 px-4 py-1.5 text-xs font-semibold tracking-wide text-brand-600 dark:text-brand-400">
-          <span className="h-1.5 w-1.5 rounded-full bg-brand-500 dark:bg-brand-400 animate-pulse" />
-          Step 1 &middot; Upload &amp; Extract
-        </div>
         <h1 className="pb-1 text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl bg-gradient-to-br from-slate-900 via-slate-700 to-slate-500 bg-clip-text text-transparent dark:from-white dark:via-slate-200 dark:to-slate-500">
           AI-powered resume<br />intelligence
         </h1>
