@@ -113,7 +113,7 @@ export default function AnalysisResult({ analysis }) {
           <SectionHeader icon={Target} title="Key Skills" />
           <ChipList
             items={analysis.skills}
-            chipClass="border-brand-200/70 bg-brand-50 text-brand-700 dark:border-brand-800/40 dark:bg-brand-950/40 dark:text-brand-300"
+            chipClass="border-brand-300/70 bg-brand-100 text-brand-800 dark:border-brand-800/40 dark:bg-brand-950/40 dark:text-brand-300"
           />
         </div>
         <div>
