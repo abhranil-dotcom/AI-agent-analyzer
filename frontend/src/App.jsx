@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import Header from './components/Header.jsx'
 import UploadPage from './pages/UploadPage.jsx'
 import AnalysisPage from './pages/AnalysisPage.jsx'
+import NotFoundPage from './pages/NotFoundPage.jsx'
 
 export default function App() {
   // Extraction result is lifted here so it survives navigation between
@@ -26,6 +27,7 @@ export default function App() {
               path="/analysis"
               element={result ? <AnalysisPage result={result} /> : <Navigate to="/" replace />}
             />
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </div>
       </main>

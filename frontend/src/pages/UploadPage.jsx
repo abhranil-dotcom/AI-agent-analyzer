@@ -9,9 +9,11 @@ import { uploadResume } from '../api/client.js'
 export default function UploadPage({ result, onExtracted }) {
   const [error, setError] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [lastFile, setLastFile] = useState(null)
   const navigate = useNavigate()
 
   async function handleUpload(file) {
+    setLastFile(file)
     setIsLoading(true)
     setError(null)
     onExtracted(null)
@@ -56,7 +58,14 @@ export default function UploadPage({ result, onExtracted }) {
         {error && (
           <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-400">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>{error}</span>
+            <span className="flex-1">{error}</span>
+            <button
+              type="button"
+              onClick={() => handleUpload(lastFile)}
+              className="shrink-0 font-semibold underline decoration-red-300 underline-offset-2 hover:decoration-red-500"
+            >
+              Try again
+            </button>
           </div>
         )}
 

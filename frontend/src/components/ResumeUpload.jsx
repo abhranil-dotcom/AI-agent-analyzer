@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react'
-import { UploadCloud, FileText, X, Loader2, ArrowRight } from 'lucide-react'
+import { UploadCloud, FileText, X, Loader2, ArrowRight, AlertCircle } from 'lucide-react'
+
+const MAX_SIZE_BYTES = 10 * 1024 * 1024
 
 function formatBytes(bytes) {
   if (bytes < 1024) return `${bytes} B`
@@ -7,26 +9,49 @@ function formatBytes(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
+function validateFile(file) {
+  if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+    return 'Only PDF files are supported.'
+  }
+  if (file.size > MAX_SIZE_BYTES) {
+    return `File is too large (${formatBytes(file.size)}). Max size is 10 MB.`
+  }
+  return null
+}
+
 export default function ResumeUpload({ onUpload, isLoading, loadingMessage = 'Extracting text…' }) {
   const [selectedFile, setSelectedFile] = useState(null)
   const [isDragActive, setIsDragActive] = useState(false)
+  const [fileError, setFileError] = useState(null)
   const inputRef = useRef(null)
+
+  function acceptFile(file) {
+    const validationError = validateFile(file)
+    if (validationError) {
+      setFileError(validationError)
+      setSelectedFile(null)
+      return
+    }
+    setFileError(null)
+    setSelectedFile(file)
+  }
 
   function handleFileChange(e) {
     const file = e.target.files?.[0]
-    if (file) setSelectedFile(file)
+    if (file) acceptFile(file)
   }
 
   function handleDrop(e) {
     e.preventDefault()
     setIsDragActive(false)
     const file = e.dataTransfer.files?.[0]
-    if (file) setSelectedFile(file)
+    if (file) acceptFile(file)
   }
 
   function handleRemove(e) {
     e.stopPropagation()
     setSelectedFile(null)
+    setFileError(null)
     if (inputRef.current) inputRef.current.value = ''
   }
 
@@ -102,6 +127,13 @@ export default function ResumeUpload({ onUpload, isLoading, loadingMessage = 'Ex
           </div>
         )}
       </div>
+
+      {fileError && (
+        <div className="mt-3 flex items-start gap-2 text-sm text-red-600 dark:text-red-400">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{fileError}</span>
+        </div>
+      )}
 
       <div className="mt-5 flex items-center gap-4">
         <button

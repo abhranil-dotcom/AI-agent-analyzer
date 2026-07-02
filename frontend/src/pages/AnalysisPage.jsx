@@ -10,6 +10,7 @@ export default function AnalysisPage({ result }) {
   const [analysis, setAnalysis] = useState(null)
   const [error, setError] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [retryCount, setRetryCount] = useState(0)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -42,7 +43,7 @@ export default function AnalysisPage({ result }) {
     return () => {
       cancelled = true
     }
-  }, [result])
+  }, [result, retryCount])
 
   return (
     <>
@@ -74,7 +75,14 @@ export default function AnalysisPage({ result }) {
         {error && (
           <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-400">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>{error}</span>
+            <span className="flex-1">{error}</span>
+            <button
+              type="button"
+              onClick={() => setRetryCount((c) => c + 1)}
+              className="shrink-0 font-semibold underline decoration-red-300 underline-offset-2 hover:decoration-red-500"
+            >
+              Try again
+            </button>
           </div>
         )}
 
