@@ -16,7 +16,7 @@ class ResumeAnalyzerAgent:
     """
     LangChain-based resume analysis agent backed by Azure OpenAI.
 
-    Exposes a single stable interface — analyze(text) → ResumeAnalysis — so the
+    Exposes a single stable interface — analyze(text, target_role) → ResumeAnalysis — so the
     FastAPI route never needs to change as capabilities grow.
 
     Internally uses an LCEL chain:
@@ -54,11 +54,13 @@ class ResumeAnalyzerAgent:
         self._tools.append(tool)
         logger.info("Tool registered: %s (total=%d)", tool.name, len(self._tools))
 
-    async def analyze(self, resume_text: str) -> ResumeAnalysis:
-        """Run the analysis chain and return structured results."""
-        logger.info("Analysing resume (%d chars)", len(resume_text))
-        result: ResumeAnalysis = await self._chain.ainvoke({"resume_text": resume_text})
-        logger.info("Analysis complete — ATS score: %d", result.ats_score)
+    async def analyze(self, resume_text: str, target_role: str) -> ResumeAnalysis:
+        """Run the analysis chain and return results scored specifically for target_role."""
+        logger.info("Analysing resume (%d chars) for role '%s'", len(resume_text), target_role)
+        result: ResumeAnalysis = await self._chain.ainvoke(
+            {"resume_text": resume_text, "target_role": target_role}
+        )
+        logger.info("Analysis complete — ATS score: %d (role=%s)", result.ats_score, target_role)
         return result
 
 

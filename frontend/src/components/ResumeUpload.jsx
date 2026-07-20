@@ -19,13 +19,19 @@ function validateFile(file) {
   return null
 }
 
-export default function ResumeUpload({ onUpload, isLoading, loadingMessage = 'Extracting text…' }) {
+export default function ResumeUpload({
+  onUpload,
+  isLoading,
+  loadingMessage = 'Extracting text…',
+  disabled = false,
+}) {
   const [selectedFile, setSelectedFile] = useState(null)
   const [isDragActive, setIsDragActive] = useState(false)
   const [fileError, setFileError] = useState(null)
   const inputRef = useRef(null)
 
   function acceptFile(file) {
+    if (disabled) return
     const validationError = validateFile(file)
     if (validationError) {
       setFileError(validationError)
@@ -56,7 +62,7 @@ export default function ResumeUpload({ onUpload, isLoading, loadingMessage = 'Ex
   }
 
   function handleSubmit() {
-    if (selectedFile) onUpload(selectedFile)
+    if (selectedFile && !disabled) onUpload(selectedFile)
   }
 
   return (
@@ -70,16 +76,18 @@ export default function ResumeUpload({ onUpload, isLoading, loadingMessage = 'Ex
 
       <div
         role="button"
-        tabIndex={0}
-        onClick={() => inputRef.current?.click()}
-        onKeyDown={(e) => e.key === 'Enter' && inputRef.current?.click()}
+        tabIndex={disabled ? -1 : 0}
+        aria-disabled={disabled}
+        onClick={() => !disabled && inputRef.current?.click()}
+        onKeyDown={(e) => !disabled && e.key === 'Enter' && inputRef.current?.click()}
         onDragOver={(e) => {
           e.preventDefault()
-          setIsDragActive(true)
+          if (!disabled) setIsDragActive(true)
         }}
         onDragLeave={() => setIsDragActive(false)}
-        onDrop={handleDrop}
-        className={`group flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-12 text-center transition-all duration-300
+        onDrop={disabled ? (e) => e.preventDefault() : handleDrop}
+        className={`group flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-12 text-center transition-all duration-300
+          ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}
           ${!selectedFile && !isDragActive ? 'upload-zone-idle' : ''}
           ${isDragActive
             ? 'scale-[1.01] border-brand-500 bg-brand-50 dark:border-brand-400 dark:bg-brand-950/20'
@@ -139,7 +147,7 @@ export default function ResumeUpload({ onUpload, isLoading, loadingMessage = 'Ex
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={!selectedFile || isLoading}
+          disabled={!selectedFile || isLoading || disabled}
           className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-brand-600 to-accent-500 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand-500/25 transition-all hover:opacity-90 hover:shadow-brand-500/40 disabled:cursor-not-allowed disabled:bg-gradient-to-r disabled:from-slate-400 disabled:to-slate-400 disabled:shadow-none disabled:opacity-60"
         >
           {isLoading ? (

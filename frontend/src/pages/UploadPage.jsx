@@ -4,13 +4,15 @@ import { AlertTriangle, ArrowRight } from 'lucide-react'
 import ResumeUpload from '../components/ResumeUpload.jsx'
 import ExtractedText from '../components/ExtractedText.jsx'
 import Stepper from '../components/Stepper.jsx'
+import TargetRoleSelect from '../components/TargetRoleSelect.jsx'
 import { uploadResume } from '../api/client.js'
 
-export default function UploadPage({ result, onExtracted }) {
+export default function UploadPage({ result, onExtracted, targetRole, onTargetRoleChange }) {
   const [error, setError] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [lastFile, setLastFile] = useState(null)
   const navigate = useNavigate()
+  const hasTargetRole = targetRole.trim().length > 0
 
   async function handleUpload(file) {
     setLastFile(file)
@@ -53,7 +55,15 @@ export default function UploadPage({ result, onExtracted }) {
       </div>
 
       <div className="flex flex-col gap-6">
-        <ResumeUpload onUpload={handleUpload} isLoading={isLoading} />
+        <TargetRoleSelect value={targetRole} onChange={onTargetRoleChange} />
+
+        <ResumeUpload onUpload={handleUpload} isLoading={isLoading} disabled={!hasTargetRole} />
+
+        {!hasTargetRole && (
+          <p className="-mt-2 text-center text-xs font-medium text-slate-500 dark:text-slate-400">
+            Select a target role above to enable resume upload.
+          </p>
+        )}
 
         {error && (
           <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-400">
@@ -75,7 +85,8 @@ export default function UploadPage({ result, onExtracted }) {
           <button
             type="button"
             onClick={() => navigate('/analysis')}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-600 to-accent-500 px-6 py-4 text-base font-bold text-white shadow-lg shadow-brand-500/25 transition-all hover:opacity-90 hover:shadow-brand-500/40"
+            disabled={!hasTargetRole}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-600 to-accent-500 px-6 py-4 text-base font-bold text-white shadow-lg shadow-brand-500/25 transition-all hover:opacity-90 hover:shadow-brand-500/40 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Analyze Resume
             <ArrowRight className="h-5 w-5" />

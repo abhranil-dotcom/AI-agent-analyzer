@@ -44,9 +44,13 @@ class AnalyzeResumeRequest(BaseModel):
     """Request body for the /analyze endpoint."""
 
     extracted_text: str = Field(..., min_length=50, description="Plain text extracted from the resume PDF")
+    target_role: str = Field(
+        ..., min_length=2, max_length=100, description="Role the candidate is applying for"
+    )
 
 
 class AnalyzeResumeResponse(BaseModel):
     """Response returned by the /analyze endpoint."""
 
     analysis: ResumeAnalysis
+    target_role: str

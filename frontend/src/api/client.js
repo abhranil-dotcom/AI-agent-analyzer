@@ -40,9 +40,10 @@ export async function uploadResume(file) {
   return response.data
 }
 
-export async function analyzeResume(extractedText) {
+export async function analyzeResume(extractedText, targetRole) {
   const response = await apiClient.post('/api/resume/analyze', {
     extracted_text: extractedText,
+    target_role: targetRole,
   })
   return response.data
 }

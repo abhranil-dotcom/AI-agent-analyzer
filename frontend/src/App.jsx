@@ -6,9 +6,10 @@ import AnalysisPage from './pages/AnalysisPage.jsx'
 import NotFoundPage from './pages/NotFoundPage.jsx'
 
 export default function App() {
-  // Extraction result is lifted here so it survives navigation between
-  // the upload and analysis pages without re-hitting the API.
+  // Extraction result and target role are lifted here so they survive navigation
+  // between the upload and analysis pages without re-hitting the API.
   const [result, setResult] = useState(null)
+  const [targetRole, setTargetRole] = useState('')
   const location = useLocation()
 
   return (
@@ -22,10 +23,26 @@ export default function App() {
       <main className="relative mx-auto w-full max-w-5xl flex-1 px-6 py-12">
         <div key={location.pathname} className="page-transition">
           <Routes>
-            <Route path="/" element={<UploadPage result={result} onExtracted={setResult} />} />
+            <Route
+              path="/"
+              element={
+                <UploadPage
+                  result={result}
+                  onExtracted={setResult}
+                  targetRole={targetRole}
+                  onTargetRoleChange={setTargetRole}
+                />
+              }
+            />
             <Route
               path="/analysis"
-              element={result ? <AnalysisPage result={result} /> : <Navigate to="/" replace />}
+              element={
+                result && targetRole.trim() ? (
+                  <AnalysisPage result={result} targetRole={targetRole} />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              }
             />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>

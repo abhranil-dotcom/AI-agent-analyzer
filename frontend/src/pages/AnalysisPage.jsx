@@ -6,7 +6,7 @@ import AnalysisSkeleton from '../components/AnalysisSkeleton.jsx'
 import Stepper from '../components/Stepper.jsx'
 import { analyzeResume } from '../api/client.js'
 
-export default function AnalysisPage({ result }) {
+export default function AnalysisPage({ result, targetRole }) {
   const [analysis, setAnalysis] = useState(null)
   const [error, setError] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -20,7 +20,7 @@ export default function AnalysisPage({ result }) {
       setIsLoading(true)
       setError(null)
       try {
-        const { analysis: analysisData } = await analyzeResume(result.extracted_text)
+        const { analysis: analysisData } = await analyzeResume(result.extracted_text, targetRole)
         if (!cancelled) setAnalysis(analysisData)
       } catch (err) {
         if (cancelled) return
@@ -43,7 +43,7 @@ export default function AnalysisPage({ result }) {
     return () => {
       cancelled = true
     }
-  }, [result, retryCount])
+  }, [result, targetRole, retryCount])
 
   return (
     <>
@@ -86,7 +86,7 @@ export default function AnalysisPage({ result }) {
           </div>
         )}
 
-        <AnalysisResult analysis={analysis} />
+        <AnalysisResult analysis={analysis} targetRole={targetRole} />
       </div>
     </>
   )

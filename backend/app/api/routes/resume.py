@@ -62,9 +62,9 @@ async def analyze_resume(
     body: AnalyzeResumeRequest,
     agent: ResumeAnalyzerAgent = Depends(get_resume_agent),
 ) -> AnalyzeResumeResponse:
-    """Pass extracted resume text to the analysis agent and return structured results."""
+    """Pass extracted resume text and the target role to the analysis agent and return structured results."""
     try:
-        analysis = await agent.analyze(body.extracted_text)
+        analysis = await agent.analyze(body.extracted_text, body.target_role)
     except Exception as exc:
         logger.exception("Resume analysis failed: %s", exc)
         raise HTTPException(
@@ -72,4 +72,4 @@ async def analyze_resume(
             detail="The analysis service is unavailable. Please try again shortly.",
         ) from exc
 
-    return AnalyzeResumeResponse(analysis=analysis)
+    return AnalyzeResumeResponse(analysis=analysis, target_role=body.target_role)
