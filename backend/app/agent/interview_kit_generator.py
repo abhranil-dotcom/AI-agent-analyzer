@@ -12,11 +12,13 @@ from app.services.vector_store import get_company_retriever
 logger = logging.getLogger(__name__)
 
 _RETRIEVAL_CATEGORIES = (
-    "overview",
-    "hiring_process",
+    "company_overview",
+    "interview_process",
     "hr_questions",
     "technical_questions",
-    "coding_questions",
+    "coding_patterns",
+    "preparation_tips",
+    "resume_based_questions",
     "interview_experiences",
 )
 
@@ -68,8 +70,13 @@ class InterviewKitGeneratorAgent:
                 "company_name": company.display_name,
                 "target_role": target_role,
                 "retrieved_context": retrieved_context,
-                "skills": ", ".join(analysis.skills),
                 "resume_text": resume_text,
+                "ats_score": analysis.ats_score,
+                "summary": analysis.summary,
+                "skills": ", ".join(analysis.skills),
+                "strengths": ", ".join(analysis.strengths),
+                "weaknesses": ", ".join(analysis.weaknesses),
+                "missing_skills": ", ".join(analysis.missing_skills),
                 "question_counts": QUESTION_COUNTS_PROMPT_TEXT,
             }
         )

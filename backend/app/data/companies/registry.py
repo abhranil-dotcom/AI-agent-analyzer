@@ -1,12 +1,25 @@
-"""Static roster of companies supported for recommendation and RAG interview prep.
+"""
+Auto-discovered roster of companies supported for recommendation and RAG interview prep.
 
-Content is deliberately fixed to this set because each company needs a seeded
-knowledge base (see the sibling `<slug>/` directories) for retrieval to work —
-the recommender agent is constrained to choose from this list so every
-recommendation is guaranteed to have a working "Prepare" flow behind it.
+Adding a new company requires zero code changes: create a new folder under this directory with a
+`company_overview.md` starting with a `## About <Display Name>` heading (its first paragraph
+becomes the recommender's blurb), plus whatever other knowledge-base markdown files you want
+retrievable (hr_questions.md, technical_questions.md, coding_patterns.md, etc.) — the next request
+that touches the registry will pick it up automatically. Content is deliberately fixed to companies
+that actually have a knowledge base here, because the recommender agent is constrained to choose
+from this list so every recommendation is guaranteed to have a working "Prepare" flow behind it.
 """
 
+import logging
+from functools import lru_cache
+from pathlib import Path
+
 from pydantic import BaseModel
+
+logger = logging.getLogger(__name__)
+
+DATA_ROOT = Path(__file__).resolve().parent
+_BLURB_MAX_CHARS = 280
 
 
 class CompanyInfo(BaseModel):
@@ -15,83 +28,68 @@ class CompanyInfo(BaseModel):
     blurb: str
 
 
-COMPANY_REGISTRY: list[CompanyInfo] = [
-    CompanyInfo(
-        slug="tcs",
-        display_name="Tata Consultancy Services (TCS)",
-        blurb=(
-            "India's largest IT services company; mass campus hiring via TCS NQT, generalist "
-            "entry-level roles spanning Java, mainframe, and digital stacks, moderate technical "
-            "bar with heavy weight on aptitude, communication, and trainability."
-        ),
-    ),
-    CompanyInfo(
-        slug="infosys",
-        display_name="Infosys",
-        blurb=(
-            "Major Indian IT services firm known for its Mysore training campus and InfyTQ "
-            "certification pipeline; broad entry-level hiring across Java/Python/digital, "
-            "moderate technical bar, strong focus on foundational programming and learnability."
-        ),
-    ),
-    CompanyInfo(
-        slug="capgemini",
-        display_name="Capgemini",
-        blurb=(
-            "French-origin global IT consulting and digital transformation firm; strong presence "
-            "in cloud, SAP, and enterprise application services, moderate technical bar with "
-            "emphasis on client-facing communication and adaptability across tech stacks."
-        ),
-    ),
-    CompanyInfo(
-        slug="accenture",
-        display_name="Accenture",
-        blurb=(
-            "Global technology consulting and professional services leader; heavy focus on cloud, "
-            "SAP, data & AI, and enterprise transformation projects, moderate-to-high bar for "
-            "lateral hires, values versatility across business and technology domains."
-        ),
-    ),
-    CompanyInfo(
-        slug="cognizant",
-        display_name="Cognizant",
-        blurb=(
-            "IT services and consulting company strong in healthcare, BFSI, and retail verticals; "
-            "GenC program for freshers, moderate technical bar with emphasis on domain adaptability "
-            "and full-stack/digital engineering skills."
-        ),
-    ),
-    CompanyInfo(
-        slug="amazon",
-        display_name="Amazon",
-        blurb=(
-            "Big tech e-commerce and cloud (AWS) company; interviews are built around the Leadership "
-            "Principles with a dedicated bar-raiser round, high technical bar with medium-to-hard "
-            "data structures & algorithms, strong emphasis on ownership and scalable system design."
-        ),
-    ),
-    CompanyInfo(
-        slug="google",
-        display_name="Google",
-        blurb=(
-            "Big tech company with an intense focus on core CS fundamentals — algorithms, data "
-            "structures, and complexity analysis at a medium-to-hard bar — plus 'Googleyness' "
-            "culture-fit assessment; less weight on any single specific tech stack."
-        ),
-    ),
-    CompanyInfo(
-        slug="microsoft",
-        display_name="Microsoft",
-        blurb=(
-            "Big tech company spanning cloud (Azure), productivity, and developer tools; strong CS "
-            "fundamentals and DSA bar at medium-to-hard difficulty, system design weighted more for "
-            "senior roles, culture emphasis on a 'growth mindset' and collaboration."
-        ),
-    ),
-]
+def _fallback_name(slug: str) -> str:
+    return slug.replace("_", " ").replace("-", " ").title()
 
-_BY_SLUG = {c.slug: c for c in COMPANY_REGISTRY}
+
+def _parse_overview(overview_path: Path, slug: str) -> tuple[str, str]:
+    """Extract a display name and short blurb from a company_overview.md file."""
+    fallback = _fallback_name(slug)
+    if not overview_path.exists():
+        logger.warning("No company_overview.md for '%s' — using fallback name/blurb", slug)
+        return fallback, f"{fallback} — profile not yet documented."
+
+    lines = overview_path.read_text(encoding="utf-8").splitlines()
+
+    display_name = fallback
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("## About "):
+            display_name = stripped.removeprefix("## About ").strip() or fallback
+            break
+        if stripped.startswith("# "):
+            display_name = stripped.removeprefix("# ").strip() or fallback
+            break
+
+    blurb_words: list[str] = []
+    started = False
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            if started:
+                break
+            continue
+        if stripped.startswith("#"):
+            continue
+        started = True
+        blurb_words.append(stripped)
+    blurb = " ".join(blurb_words)[:_BLURB_MAX_CHARS].strip()
+
+    return display_name, blurb or f"{display_name} — profile not yet documented."
+
+
+@lru_cache(maxsize=1)
+def get_company_registry() -> list[CompanyInfo]:
+    """Scan app/data/companies/*/ once per process and cache the result."""
+    companies: list[CompanyInfo] = []
+    if not DATA_ROOT.exists():
+        return companies
+
+    for company_dir in sorted(DATA_ROOT.iterdir()):
+        if not company_dir.is_dir() or company_dir.name.startswith((".", "_")):
+            continue
+        if not any(company_dir.glob("*.md")):
+            continue  # not a knowledge base — e.g. a stray or empty directory
+        slug = company_dir.name
+        display_name, blurb = _parse_overview(company_dir / "company_overview.md", slug)
+        companies.append(CompanyInfo(slug=slug, display_name=display_name, blurb=blurb))
+
+    logger.info("Discovered %d companies: %s", len(companies), [c.slug for c in companies])
+    return companies
 
 
 def get_company(slug: str) -> CompanyInfo | None:
-    return _BY_SLUG.get(slug)
+    for company in get_company_registry():
+        if company.slug == slug:
+            return company
+    return None

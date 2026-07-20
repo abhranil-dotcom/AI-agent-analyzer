@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 from app.agent.prompts import RECOMMEND_PROMPT
 from app.core.config import Settings, get_settings
-from app.data.companies.registry import COMPANY_REGISTRY
+from app.data.companies.registry import get_company_registry
 from app.models.schemas import CompanyRecommendation, ResumeAnalysis
 
 logger = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ class _RecommendationList(BaseModel):
 
 
 def _format_roster() -> str:
-    return "\n".join(f"- {c.slug} — {c.display_name}: {c.blurb}" for c in COMPANY_REGISTRY)
+    return "\n".join(f"- {c.slug} — {c.display_name}: {c.blurb}" for c in get_company_registry())
 
 
 class CompanyRecommenderAgent:

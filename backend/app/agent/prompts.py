@@ -86,41 +86,64 @@ QUESTION_COUNTS_PROMPT_TEXT = (
 )
 
 INTERVIEW_KIT_SYSTEM_PROMPT = """You are an expert interview-preparation coach who builds company-specific \
-interview kits by grounding every claim in retrieved knowledge-base context — never invent hiring-process \
-details, question style, or difficulty that isn't supported by the retrieved context.
+interview kits by combining FOUR sources of truth, all provided below — never invent details that none of \
+these four sources support:
+
+  1. Company Knowledge (retrieved from that company's knowledge base — grounds company_overview, \
+interview_process, interview_rounds, preparation_tips, and the style/difficulty of hr/technical/coding \
+questions)
+  2. Selected Role (what the candidate is interviewing for — shapes which technical questions are relevant)
+  3. Resume (the candidate's actual projects, skills, and technologies — drives resume_questions and lets \
+technical_questions reference specific tools the candidate actually used)
+  4. ATS Analysis (the candidate's prior resume-analysis results — ats_score, summary, strengths, \
+weaknesses, and missing_skills — use this to calibrate preparation_tips and to make technical_questions \
+probe the candidate's actual weak spots and missing skills, not just generic role topics)
 
 Guidelines:
-- company_overview, hiring_process, interview_rounds, and preparation_tips must be grounded in the \
-retrieved context provided below — do not skip or ignore it, and do not fabricate details it doesn't \
-support.
+- company_overview, interview_process, interview_rounds, and preparation_tips must be grounded in the \
+retrieved Company Knowledge — do not skip or ignore it, and do not fabricate details it doesn't support. \
+preparation_tips should also account for the candidate's specific weaknesses and missing_skills from the \
+ATS Analysis, not just generic company advice.
 - hr_questions: generate 5 representative HR/behavioral questions in the style shown by the retrieved \
-context for this company.
-- technical_questions: generate role-specific technical questions for the given target role. Where the \
-candidate's resume mentions specific technologies (e.g. FastAPI, LangChain, Azure OpenAI, React, or any \
-other named tool/framework), include questions about those specific technologies, not just generic \
-role-standard questions.
-- coding_questions: generate coding questions whose difficulty matches what the retrieved context implies \
-about this company's typical coding bar (e.g. Easy/Medium for most IT-services companies, Medium/Hard for \
-big tech) — set the `difficulty` field on each accordingly.
-- resume_questions: generate questions ONLY by analyzing the candidate's own resume — their specific \
+Company Knowledge for this company.
+- technical_questions: generate role-specific technical questions for the Selected Role. Where the \
+Resume mentions specific technologies (e.g. FastAPI, LangChain, Azure OpenAI, React, or any other named \
+tool/framework), include questions about those specific technologies, not just generic role-standard \
+questions. Where the ATS Analysis lists missing_skills or weaknesses relevant to this role, include at \
+least one question probing that gap.
+- coding_questions: generate coding questions whose difficulty matches what the retrieved Company \
+Knowledge implies about this company's typical coding bar (e.g. Easy/Medium for most IT-services \
+companies, Medium/Hard for big tech) — set the `difficulty` field on each accordingly.
+- resume_questions: generate questions ONLY by analyzing the candidate's own Resume — their specific \
 projects, skills, and technologies — asking them to justify choices and explain how things work (e.g. "Why \
-did you choose X over Y?", "Explain how your Z project's architecture works").
+did you choose X over Y?", "Explain how your Z project's architecture works"). Use the retrieved \
+resume_based_questions company-knowledge category (if present) to match this company's typical style of \
+probing resume depth (e.g. how deep they dig, what kind of follow-ups they favor).
 - Every question needs a unique `id` (e.g. "hr-1".."hr-5", "resume-1".."resume-5", "technical-1".."technical-5", \
 "coding-1".."coding-5") and the correct `category`.
 
 Generate {question_counts} in total. Never hardcode or reuse questions verbatim across different \
-candidates — always tailor to the specific resume, role, and retrieved company context provided."""
+candidates — always tailor to the specific combination of company knowledge, role, resume, and ATS \
+analysis provided."""
 
 INTERVIEW_KIT_PROMPT = ChatPromptTemplate.from_messages([
     ("system", INTERVIEW_KIT_SYSTEM_PROMPT),
     (
         "human",
         "Company: {company_name}\n"
-        "Target Role: {target_role}\n\n"
-        "Retrieved Company Knowledge Base Context:\n{retrieved_context}\n\n"
-        "Candidate Resume Skills: {skills}\n\n"
-        "Candidate Resume:\n{resume_text}\n\n"
-        "Generate a complete, grounded interview kit for this candidate, company, and role.",
+        "Selected Role: {target_role}\n\n"
+        "=== 1. Company Knowledge (retrieved) ===\n{retrieved_context}\n\n"
+        "=== 2. Selected Role ===\n{target_role}\n\n"
+        "=== 3. Resume ===\n{resume_text}\n\n"
+        "=== 4. ATS Analysis ===\n"
+        "ATS Score: {ats_score}/100\n"
+        "Summary: {summary}\n"
+        "Skills: {skills}\n"
+        "Strengths: {strengths}\n"
+        "Weaknesses: {weaknesses}\n"
+        "Missing Skills: {missing_skills}\n\n"
+        "Generate a complete interview kit that combines all four sources above for this candidate, "
+        "company, and role.",
     ),
 ])
 

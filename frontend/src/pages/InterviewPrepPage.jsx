@@ -39,11 +39,34 @@ function QuestionPreviewGroup({ title, questions }) {
   )
 }
 
+function useLoadingStages(isLoading, stages, intervalMs = 1600) {
+  const [stageIndex, setStageIndex] = useState(0)
+
+  useEffect(() => {
+    if (!isLoading) {
+      setStageIndex(0)
+      return
+    }
+    const timer = setInterval(() => {
+      setStageIndex((i) => Math.min(i + 1, stages.length - 1))
+    }, intervalMs)
+    return () => clearInterval(timer)
+  }, [isLoading, stages.length, intervalMs])
+
+  return stages[stageIndex]
+}
+
 export default function InterviewPrepPage({ result, targetRole, analysis, company, interviewKit, onKitComplete }) {
   const [error, setError] = useState(null)
   const [isLoading, setIsLoading] = useState(!interviewKit)
   const [retryCount, setRetryCount] = useState(0)
   const navigate = useNavigate()
+
+  const loadingMessage = useLoadingStages(isLoading, [
+    `Preparing ${company.display_name} interview kit…`,
+    'Searching knowledge base…',
+    'Generating personalized interview questions…',
+  ])
 
   useEffect(() => {
     if (interviewKit) return
@@ -102,7 +125,15 @@ export default function InterviewPrepPage({ result, targetRole, analysis, compan
       </div>
 
       <div className="flex flex-col gap-6">
-        {isLoading && <InterviewKitSkeleton />}
+        {isLoading && (
+          <>
+            <div className="flex items-center justify-center gap-3 rounded-xl border border-brand-200/60 bg-brand-50/60 px-4 py-3 text-sm font-semibold text-brand-700 dark:border-brand-800/40 dark:bg-brand-950/30 dark:text-brand-300">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-brand-500" />
+              {loadingMessage}
+            </div>
+            <InterviewKitSkeleton />
+          </>
+        )}
 
         {error && (
           <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-400">

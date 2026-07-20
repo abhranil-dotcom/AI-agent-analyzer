@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from fastapi import FastAPI, HTTPException, Request
@@ -9,7 +10,9 @@ from app.api.routes.interview import router as interview_router
 from app.api.routes.resume import router as resume_router
 from app.core.config import get_settings
 from app.core.logging_config import configure_logging
+from app.data.companies.registry import get_company_registry
 from app.models.schemas import HealthResponse
+from app.services.vector_store import warm_all
 
 settings = get_settings()
 configure_logging(debug=settings.debug)
@@ -64,3 +67,14 @@ async def on_startup() -> None:
     logger.info("%s started in '%s' mode", settings.app_name, settings.app_env)
     logger.info("CORS_ORIGINS env = %s", settings.cors_origins)
     logger.info("Parsed origins = %s", settings.cors_origin_list)
+
+    # Build every company's RAG index up front so the first real "Prepare for X" request
+    # doesn't pay the embedding-build cost — and so a missing/broken knowledge base is caught
+    # in the startup log instead of surfacing as a user-facing error later. Runs in a worker
+    # thread so it doesn't block the event loop; per-company failures are logged and skipped by
+    # warm_all() itself, so one bad company can't prevent the app from starting or block others.
+    try:
+        slugs = [c.slug for c in get_company_registry()]
+        await asyncio.to_thread(warm_all, "companies", slugs)
+    except Exception:
+        logger.exception("Company knowledge base warm-up failed unexpectedly — continuing startup anyway")

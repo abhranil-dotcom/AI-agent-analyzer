@@ -1,4 +1,4 @@
-## About TCS
+## About Tata Consultancy Services (TCS)
 
 Tata Consultancy Services (TCS) is India's largest IT services, consulting, and business
 solutions company, part of the Tata Group. It operates across more than 55 countries and serves
