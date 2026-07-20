@@ -47,3 +47,33 @@ export async function analyzeResume(extractedText, targetRole) {
   })
   return response.data
 }
+
+export async function recommendCompanies(extractedText, targetRole, analysis) {
+  const response = await apiClient.post('/api/companies/recommend', {
+    extracted_text: extractedText,
+    target_role: targetRole,
+    analysis,
+  })
+  return response.data
+}
+
+export async function generateInterviewKit(companySlug, targetRole, extractedText, analysis) {
+  const response = await apiClient.post('/api/interview/kit', {
+    company_slug: companySlug,
+    target_role: targetRole,
+    extracted_text: extractedText,
+    analysis,
+  })
+  return response.data
+}
+
+export async function evaluateAnswer(question, category, targetRole, companySlug, candidateAnswer) {
+  const response = await apiClient.post('/api/interview/evaluate', {
+    question,
+    category,
+    target_role: targetRole,
+    company_slug: companySlug,
+    candidate_answer: candidateAnswer,
+  })
+  return response.data
+}

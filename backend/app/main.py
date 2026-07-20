@@ -4,6 +4,8 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.api.routes.companies import router as companies_router
+from app.api.routes.interview import router as interview_router
 from app.api.routes.resume import router as resume_router
 from app.core.config import get_settings
 from app.core.logging_config import configure_logging
@@ -53,6 +55,8 @@ async def health_check() -> HealthResponse:
 
 
 app.include_router(resume_router)
+app.include_router(companies_router)
+app.include_router(interview_router)
 
 
 @app.on_event("startup")
