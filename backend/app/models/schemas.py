@@ -151,3 +151,127 @@ class AnswerEvaluation(BaseModel):
 
 class EvaluateAnswerResponse(BaseModel):
     evaluation: AnswerEvaluation
+
+
+# ---------------------------------------------------------------------------
+# Phase 5 — Career Toolkit (JD Match, Resume Rewrite, Skill Gap, Cover Letter)
+# ---------------------------------------------------------------------------
+
+class JDMatchResult(BaseModel):
+    """Structured output produced by the JD-matcher agent."""
+
+    jd_match_score: int = Field(
+        ...,
+        ge=0,
+        le=100,
+        description=(
+            "Match against THIS job description's stated requirements — distinct from and not "
+            "comparable to ats_score, which measures general role fit."
+        ),
+    )
+    matching_keywords: list[str] = Field(..., description="Skills/keywords present in both resume and JD")
+    missing_keywords: list[str] = Field(..., description="Important JD keywords/requirements absent from the resume")
+    tailoring_suggestions: list[str] = Field(..., description="Actionable suggestions for tailoring to this exact JD")
+
+
+class MatchResumeToJDRequest(BaseModel):
+    """Request body for the /api/toolkit/match-jd endpoint."""
+
+    extracted_text: str = Field(..., min_length=50)
+    target_role: str = Field(..., min_length=2, max_length=100)
+    analysis: ResumeAnalysis
+    job_description: str = Field(..., min_length=50, description="Full text of the job posting pasted by the user")
+
+
+class MatchResumeToJDResponse(BaseModel):
+    match: JDMatchResult
+
+
+class BulletRewrite(BaseModel):
+    original: str = Field(..., description="The original bullet/line exactly as it appears in the resume")
+    improved: str = Field(..., description="A stronger rewritten version — action-verb led, sharper impact")
+    rationale: str = Field(..., description="One sentence explaining what changed and why it's stronger")
+
+
+class ResumeRewrite(BaseModel):
+    """Structured output produced by the resume-rewriter agent."""
+
+    improved_summary: str = Field(..., description="A stronger 2-4 sentence professional summary")
+    bullet_rewrites: list[BulletRewrite] = Field(
+        ..., description="Original -> improved pairs for the resume's most impactful bullets"
+    )
+    skills_section_rewrite: list[str] = Field(
+        ..., description="Cleaned-up, grouped skills section lines, e.g. 'Languages: Python, JavaScript, SQL'"
+    )
+
+
+class RewriteResumeRequest(BaseModel):
+    """Request body for the /api/toolkit/rewrite-resume endpoint."""
+
+    extracted_text: str = Field(..., min_length=50)
+    target_role: str = Field(..., min_length=2, max_length=100)
+    analysis: ResumeAnalysis
+
+
+class RewriteResumeResponse(BaseModel):
+    rewrite: ResumeRewrite
+
+
+SkillPriority = Literal["High", "Medium", "Low"]
+
+
+class SkillGapEntry(BaseModel):
+    skill: str
+    priority: SkillPriority
+    why_it_matters: str = Field(..., description="Why this skill matters specifically for the target role")
+    suggested_resources: list[str] = Field(
+        ...,
+        description=(
+            "Named real, well-known, generically-recognizable resources (e.g. 'official FastAPI "
+            "documentation', 'freeCodeCamp's React course') — never a fabricated clickable URL"
+        ),
+    )
+    search_terms: list[str] = Field(..., description="Search terms the candidate can use to find current material")
+
+
+class SkillGapAnalysis(BaseModel):
+    """Structured output produced by the skill-gap-analyzer agent."""
+
+    learning_path: list[SkillGapEntry] = Field(..., description="Prioritized, highest-priority gap first")
+    overall_notes: str = Field(..., description="1-3 sentence summary of the candidate's overall gap picture")
+
+
+class AnalyzeSkillGapRequest(BaseModel):
+    """Request body for the /api/toolkit/skill-gap endpoint."""
+
+    extracted_text: str = Field(..., min_length=50)
+    target_role: str = Field(..., min_length=2, max_length=100)
+    analysis: ResumeAnalysis
+
+
+class AnalyzeSkillGapResponse(BaseModel):
+    skill_gap: SkillGapAnalysis
+
+
+class CoverLetter(BaseModel):
+    """Structured output produced by the cover-letter-generator agent."""
+
+    greeting: str = Field(..., description="e.g. 'Dear Hiring Manager,' or company-personalized if given")
+    body_paragraphs: list[str] = Field(..., description="Ordered body paragraphs")
+    closing: str = Field(..., description="Sign-off line, e.g. 'Sincerely,'")
+
+
+class GenerateCoverLetterRequest(BaseModel):
+    """Request body for the /api/toolkit/cover-letter endpoint."""
+
+    extracted_text: str = Field(..., min_length=50)
+    target_role: str = Field(..., min_length=2, max_length=100)
+    analysis: ResumeAnalysis
+    company_name: str | None = Field(
+        None, max_length=150, description="Optional — personalizes the letter if a company was already selected"
+    )
+
+
+class GenerateCoverLetterResponse(BaseModel):
+    cover_letter: CoverLetter
+    company_name: str | None = Field(None, description="Echoes whether/what personalization was applied")

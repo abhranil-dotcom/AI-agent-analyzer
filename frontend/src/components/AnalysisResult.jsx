@@ -1,4 +1,5 @@
 import { CheckCircle2, AlertTriangle, XCircle, Lightbulb, Sparkles, Target } from 'lucide-react'
+import ChipList from './ChipList.jsx'
 import ScoreRing, { COLOR_STYLES, getScoreTier } from './ScoreRing.jsx'
 
 export default function AnalysisResult({ analysis, targetRole }) {
@@ -100,21 +101,6 @@ function SectionHeader({ icon: Icon, title, iconClass = 'text-slate-500 dark:tex
     <div className="flex items-center gap-2">
       <Icon className={`h-4 w-4 shrink-0 ${iconClass}`} />
       <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">{title}</h3>
-    </div>
-  )
-}
-
-function ChipList({ items, chipClass }) {
-  return (
-    <div className="mt-3 flex flex-wrap gap-2">
-      {items.map((item) => (
-        <span
-          key={item}
-          className={`rounded-full border px-3 py-1 text-xs font-semibold ${chipClass}`}
-        >
-          {item}
-        </span>
-      ))}
     </div>
   )
 }

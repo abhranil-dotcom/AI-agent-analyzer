@@ -77,3 +77,41 @@ export async function evaluateAnswer(question, category, targetRole, companySlug
   })
   return response.data
 }
+
+export async function matchResumeToJD(extractedText, targetRole, analysis, jobDescription) {
+  const response = await apiClient.post('/api/toolkit/match-jd', {
+    extracted_text: extractedText,
+    target_role: targetRole,
+    analysis,
+    job_description: jobDescription,
+  })
+  return response.data
+}
+
+export async function rewriteResume(extractedText, targetRole, analysis) {
+  const response = await apiClient.post('/api/toolkit/rewrite-resume', {
+    extracted_text: extractedText,
+    target_role: targetRole,
+    analysis,
+  })
+  return response.data
+}
+
+export async function analyzeSkillGap(extractedText, targetRole, analysis) {
+  const response = await apiClient.post('/api/toolkit/skill-gap', {
+    extracted_text: extractedText,
+    target_role: targetRole,
+    analysis,
+  })
+  return response.data
+}
+
+export async function generateCoverLetter(extractedText, targetRole, analysis, companyName) {
+  const response = await apiClient.post('/api/toolkit/cover-letter', {
+    extracted_text: extractedText,
+    target_role: targetRole,
+    analysis,
+    company_name: companyName ?? null,
+  })
+  return response.data
+}

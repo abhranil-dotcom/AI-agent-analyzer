@@ -6,6 +6,11 @@ import AnalysisPage from './pages/AnalysisPage.jsx'
 import CompaniesPage from './pages/CompaniesPage.jsx'
 import InterviewPrepPage from './pages/InterviewPrepPage.jsx'
 import MockInterviewPage from './pages/MockInterviewPage.jsx'
+import ToolkitHubPage from './pages/ToolkitHubPage.jsx'
+import JDMatchPage from './pages/JDMatchPage.jsx'
+import ResumeRewritePage from './pages/ResumeRewritePage.jsx'
+import SkillGapPage from './pages/SkillGapPage.jsx'
+import CoverLetterPage from './pages/CoverLetterPage.jsx'
 import NotFoundPage from './pages/NotFoundPage.jsx'
 
 export default function App() {
@@ -104,6 +109,61 @@ export default function App() {
               element={
                 interviewKit && selectedCompany ? (
                   <MockInterviewPage interviewKit={interviewKit} targetRole={targetRole} company={selectedCompany} />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              }
+            />
+            <Route
+              path="/toolkit"
+              element={
+                analysis ? (
+                  <ToolkitHubPage targetRole={targetRole} selectedCompany={selectedCompany} />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              }
+            />
+            <Route
+              path="/toolkit/match-jd"
+              element={
+                analysis ? (
+                  <JDMatchPage result={result} targetRole={targetRole} analysis={analysis} />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              }
+            />
+            <Route
+              path="/toolkit/rewrite"
+              element={
+                analysis ? (
+                  <ResumeRewritePage result={result} targetRole={targetRole} analysis={analysis} />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              }
+            />
+            <Route
+              path="/toolkit/skill-gap"
+              element={
+                analysis ? (
+                  <SkillGapPage result={result} targetRole={targetRole} analysis={analysis} />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              }
+            />
+            <Route
+              path="/toolkit/cover-letter"
+              element={
+                analysis ? (
+                  <CoverLetterPage
+                    result={result}
+                    targetRole={targetRole}
+                    analysis={analysis}
+                    selectedCompany={selectedCompany}
+                  />
                 ) : (
                   <Navigate to="/" replace />
                 )

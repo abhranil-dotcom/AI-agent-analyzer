@@ -89,14 +89,24 @@ export default function AnalysisPage({ result, targetRole, analysis, onAnalysisC
         <AnalysisResult analysis={analysis} targetRole={targetRole} />
 
         {analysis && (
-          <button
-            type="button"
-            onClick={() => navigate('/companies')}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-600 to-accent-500 px-6 py-4 text-base font-bold text-white shadow-lg shadow-brand-500/25 transition-all hover:opacity-90 hover:shadow-brand-500/40"
-          >
-            Find Matching Companies
-            <ArrowRight className="h-5 w-5" />
-          </button>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={() => navigate('/companies')}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-600 to-accent-500 px-6 py-4 text-base font-bold text-white shadow-lg shadow-brand-500/25 transition-all hover:opacity-90 hover:shadow-brand-500/40"
+            >
+              Find Matching Companies
+              <ArrowRight className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/toolkit')}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200/60 bg-white/60 px-6 py-4 text-sm font-semibold text-slate-600 transition-colors hover:border-brand-300 hover:text-brand-600 dark:border-white/[0.08] dark:bg-slate-900/40 dark:text-slate-300 dark:hover:text-brand-400 sm:w-auto"
+            >
+              Explore Career Toolkit
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
         )}
       </div>
     </>
