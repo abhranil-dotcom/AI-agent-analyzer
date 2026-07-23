@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { AlertTriangle, ArrowLeft, ArrowRight, CheckCircle2, Lightbulb, Loader2, XCircle } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, ArrowRight, BookMarked, CheckCircle2, Lightbulb, Loader2, XCircle } from 'lucide-react'
 import ChipList from '../components/ChipList.jsx'
 import ScoreRing, { COLOR_STYLES, getScoreTier } from '../components/ScoreRing.jsx'
 import { matchResumeToJD } from '../api/client.js'
@@ -155,6 +155,17 @@ export default function JDMatchPage({ result, targetRole, analysis }) {
                 ))}
               </ol>
             </div>
+
+            <button
+              type="button"
+              onClick={() =>
+                navigate('/toolkit/learning-resources', { state: { extraSkills: match.missing_keywords } })
+              }
+              className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200/60 bg-white/60 px-6 py-3.5 text-sm font-semibold text-slate-600 transition-colors hover:border-brand-300 hover:text-brand-600 dark:border-white/[0.08] dark:bg-slate-900/40 dark:text-slate-300 dark:hover:text-brand-400 sm:w-auto"
+            >
+              <BookMarked className="h-4 w-4" />
+              Find Courses for These Gaps
+            </button>
           </section>
         )}
       </div>

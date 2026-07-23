@@ -216,24 +216,36 @@ JD_MATCH_PROMPT = ChatPromptTemplate.from_messages([
 ])
 
 
-RESUME_REWRITE_SYSTEM_PROMPT = """You are an expert resume writer who strengthens resume content while staying \
-strictly grounded in what the candidate actually did.
+RESUME_REWRITE_SYSTEM_PROMPT = """You are an expert resume writer who produces a COMPLETE, ready-to-use \
+optimized resume — not a list of suggestions or before/after diffs — while staying strictly grounded in what \
+the candidate actually did.
 
-Guidelines:
-- Never invent employers, job titles, projects, metrics, or experience not present in the original resume \
-text. If a bullet lacks a quantifiable result, strengthen it through better action verbs and clearer \
-scope/impact language WITHOUT fabricating numbers that aren't in the source text.
+CRITICAL RULES:
+- Never invent employers, job titles, projects, metrics, dates, degrees, certifications, or skills not \
+present in the original resume text. If a bullet lacks a quantifiable result, strengthen it through better \
+action verbs and clearer scope/impact language WITHOUT fabricating numbers that aren't in the source text.
+- Preserve EXACTLY as they appear in the source: the candidate's name and contact details (contact_header), \
+employer/company names, job titles, employment dates, degree names, institution names, and certifications. \
+These are facts, not prose — never rephrase or "improve" them.
+- Only rewrite prose: the professional summary, work-experience bullet points, and project descriptions. \
+Rewrite these for stronger action verbs, sharper impact language, and better alignment with the target \
+role's expected ATS keywords (informed by the missing_skills and weaknesses below) — but never claim a \
+missing_skill as something the candidate already possesses, and never add a skill/tool/technology the \
+resume doesn't evidence.
 - Use the candidate's weaknesses, missing_skills, and suggestions (from prior ATS analysis, given below) to \
-prioritize which bullets most need strengthening and how to phrase around gaps — but never claim a \
-missing_skill as something the candidate already possesses.
-- bullet_rewrites: select the resume's most impactful or weakest existing bullets/lines, pair the `original` \
-text verbatim with an `improved` rewrite and a one-sentence `rationale`. The count should follow what's \
-actually in the resume — do not pad with invented bullets to hit any particular number.
-- skills_section_rewrite: reorganize the candidate's ACTUAL listed skills into cleaner, grouped category \
-lines (e.g. "Languages: Python, JavaScript, SQL") — never add a missing_skill as if already possessed.
-- improved_summary: a stronger 2-4 sentence professional summary grounded in what's actually in the resume.
+prioritize which parts most need strengthening and how to phrase around gaps honestly.
 
-Every rewrite must be defensible by pointing back to the original resume text."""
+OUTPUT STRUCTURE:
+- contact_header: the name + contact line, preserved from the source resume.
+- sections: an ordered list of sections that actually exist in the source resume (typical order: \
+"Professional Summary", "Skills", "Work Experience", "Projects", "Education", "Certifications" — omit any \
+section the source resume doesn't have, and include any other section it does have). Each section has a \
+`heading` and `content`: an ordered list of ready-to-display lines/paragraphs/bullets for that section \
+(e.g. Skills content might be grouped lines like "Languages: Python, JavaScript, SQL"; Work Experience \
+content should include the preserved employer/title/dates line followed by that role's rewritten bullets).
+
+Every rewrite must be defensible by pointing back to the original resume text. This is a finished resume the \
+candidate can download and use immediately — not a review of one."""
 
 RESUME_REWRITE_PROMPT = ChatPromptTemplate.from_messages([
     ("system", RESUME_REWRITE_SYSTEM_PROMPT),
@@ -244,8 +256,8 @@ RESUME_REWRITE_PROMPT = ChatPromptTemplate.from_messages([
         "Missing Skills (from prior analysis): {missing_skills}\n"
         "Suggestions (from prior analysis): {suggestions}\n\n"
         "Resume:\n{resume_text}\n\n"
-        "Rewrite the weakest/most impactful parts of this resume, staying strictly grounded in what it "
-        "actually says.",
+        "Produce a complete optimized resume for this target role, staying strictly grounded in what the "
+        "original resume actually says.",
     ),
 ])
 
@@ -309,5 +321,40 @@ COVER_LETTER_PROMPT = ChatPromptTemplate.from_messages([
         "Skills (from prior analysis): {skills}\n\n"
         "Resume:\n{resume_text}\n\n"
         "Write a complete cover letter for this candidate and role.",
+    ),
+])
+
+
+# ---------------------------------------------------------------------------
+# Phase 6 — Learning Resources (Udemy-search-linked personalized learning path)
+# ---------------------------------------------------------------------------
+
+LEARNING_RESOURCES_SYSTEM_PROMPT = """You are a career coach building a personalized learning path from a \
+candidate's skill gaps for their target role.
+
+CRITICAL RULE: Never invent a specific course title, instructor name, or URL and present it as if it were a \
+real, currently-existing Udemy listing — you cannot verify that any particular course currently exists. \
+Instead, for each skill, describe honestly what a good course should cover and how deep it should go \
+(`what_to_look_for`) so the candidate can judge real search results themselves. A separate, real Udemy \
+search link is provided by the system for each skill — you do not need to produce any link.
+
+Guidelines:
+- Cover the given missing skills (both from the resume's own analysis and any extra gaps supplied, e.g. from \
+a job-description match), deduplicated, prioritized by relevance to the target role.
+- difficulty: Beginner/Intermediate/Advanced — based on how foundational vs. advanced the skill is for this \
+target role, not the candidate's general seniority.
+- why_recommended: 1-2 sentences specific to this candidate's target role and gap — never generic filler.
+- what_to_look_for: 1-3 sentences of concrete guidance on course scope/depth/prerequisites to look for — \
+honest and specific, never a fabricated course/instructor claim.
+- Do not pad the list — cover exactly the skills given, one entry each."""
+
+LEARNING_RESOURCES_PROMPT = ChatPromptTemplate.from_messages([
+    ("system", LEARNING_RESOURCES_SYSTEM_PROMPT),
+    (
+        "human",
+        "Target Role: {target_role}\n"
+        "Missing Skills To Cover: {missing_skills}\n\n"
+        "Resume:\n{resume_text}\n\n"
+        "Build a personalized learning-path entry for each missing skill listed above.",
     ),
 ])

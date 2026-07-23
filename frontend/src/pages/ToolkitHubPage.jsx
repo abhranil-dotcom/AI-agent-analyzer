@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, FileSearch2, GraduationCap, Mail, PenLine } from 'lucide-react'
+import { ArrowLeft, BookMarked, FileSearch2, GraduationCap, Mail, PenLine } from 'lucide-react'
 import ToolkitCard from '../components/ToolkitCard.jsx'
 
 export default function ToolkitHubPage({ targetRole, selectedCompany }) {
@@ -43,6 +43,12 @@ export default function ToolkitHubPage({ targetRole, selectedCompany }) {
           title="Skill Gap & Learning Path"
           description="Turn your missing skills into a prioritized, role-specific learning plan."
           onClick={() => navigate('/toolkit/skill-gap')}
+        />
+        <ToolkitCard
+          icon={BookMarked}
+          title="Learning Resources"
+          description="Personalized Udemy searches for your missing skills — never a guessed course."
+          onClick={() => navigate('/toolkit/learning-resources')}
         />
         <ToolkitCard
           icon={Mail}

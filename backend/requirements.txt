@@ -3,8 +3,20 @@ uvicorn[standard]==0.34.0
 pypdf==5.1.0
 python-multipart==0.0.20
 pydantic==2.10.4
+email-validator==2.2.0
 pydantic-settings==2.7.1
 python-dotenv==1.0.1
+
+# Authentication
+sqlalchemy==2.0.36
+bcrypt==4.2.1
+pyjwt==2.10.1
+# Only needed if DATABASE_URL points at Postgres (recommended for production — see .env.example);
+# harmless to install when using the default local SQLite.
+psycopg2-binary==2.9.10
+
+# PDF export for the optimized resume download
+reportlab==4.2.5
 
 # LangChain + Azure OpenAI
 langchain==0.3.25

@@ -5,6 +5,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.api.routes.auth import router as auth_router
 from app.api.routes.companies import router as companies_router
 from app.api.routes.interview import router as interview_router
 from app.api.routes.resume import router as resume_router
@@ -12,6 +13,8 @@ from app.api.routes.toolkit import router as toolkit_router
 from app.core.config import get_settings
 from app.core.logging_config import configure_logging
 from app.data.companies.registry import get_company_registry
+from app.db.database import Base, engine
+from app.db import models as _db_models  # noqa: F401 — import registers User with Base's metadata
 from app.models.schemas import HealthResponse
 from app.services.vector_store import warm_all
 
@@ -58,6 +61,7 @@ async def health_check() -> HealthResponse:
     return HealthResponse(status="ok", app_name=settings.app_name, app_env=settings.app_env)
 
 
+app.include_router(auth_router)
 app.include_router(resume_router)
 app.include_router(companies_router)
 app.include_router(interview_router)
@@ -69,6 +73,10 @@ async def on_startup() -> None:
     logger.info("%s started in '%s' mode", settings.app_name, settings.app_env)
     logger.info("CORS_ORIGINS env = %s", settings.cors_origins)
     logger.info("Parsed origins = %s", settings.cors_origin_list)
+
+    # No Alembic at this scale — create the users table if it doesn't exist yet. Safe to call
+    # on every startup since create_all() is a no-op for tables that already exist.
+    Base.metadata.create_all(bind=engine)
 
     # Build every company's RAG index up front so the first real "Prepare for X" request
     # doesn't pay the embedding-build cost — and so a missing/broken knowledge base is caught

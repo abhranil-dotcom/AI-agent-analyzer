@@ -3,11 +3,12 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.agent.company_recommender import CompanyRecommenderAgent, get_company_recommender_agent
+from app.api.deps import get_current_user
 from app.models.schemas import RecommendCompaniesRequest, RecommendCompaniesResponse
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/companies", tags=["companies"])
+router = APIRouter(prefix="/api/companies", tags=["companies"], dependencies=[Depends(get_current_user)])
 
 
 @router.post("/recommend", response_model=RecommendCompaniesResponse)

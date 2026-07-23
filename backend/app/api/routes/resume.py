@@ -3,6 +3,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 
 from app.agent.resume_analyzer import ResumeAnalyzerAgent, get_resume_agent
+from app.api.deps import get_current_user
 from app.core.config import Settings, get_settings
 from app.models.schemas import (
     AnalyzeResumeRequest,
@@ -13,7 +14,7 @@ from app.services.pdf_extractor import PDFExtractionError, extract_text_from_pdf
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/resume", tags=["resume"])
+router = APIRouter(prefix="/api/resume", tags=["resume"], dependencies=[Depends(get_current_user)])
 
 ALLOWED_CONTENT_TYPES = {"application/pdf"}
 

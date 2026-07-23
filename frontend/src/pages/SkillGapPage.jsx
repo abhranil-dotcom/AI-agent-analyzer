@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { AlertTriangle, ArrowLeft, ArrowRight, BookOpen, GraduationCap, Loader2, Search } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, ArrowRight, BookMarked, BookOpen, GraduationCap, Loader2, Search } from 'lucide-react'
 import { analyzeSkillGap } from '../api/client.js'
 
 const PRIORITY_STYLES = {
@@ -108,6 +108,19 @@ export default function SkillGapPage({ result, targetRole, analysis }) {
             <section className="rounded-2xl border border-slate-200/60 bg-white/90 p-6 shadow-xl backdrop-blur-xl sm:p-8 dark:border-white/[0.08] dark:bg-slate-900/80">
               <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">{skillGap.overall_notes}</p>
             </section>
+
+            <button
+              type="button"
+              onClick={() =>
+                navigate('/toolkit/learning-resources', {
+                  state: { extraSkills: skillGap.learning_path.map((entry) => entry.skill) },
+                })
+              }
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200/60 bg-white/60 px-6 py-3.5 text-sm font-semibold text-slate-600 transition-colors hover:border-brand-300 hover:text-brand-600 dark:border-white/[0.08] dark:bg-slate-900/40 dark:text-slate-300 dark:hover:text-brand-400 sm:w-auto"
+            >
+              <BookMarked className="h-4 w-4" />
+              Find Courses for These Gaps
+            </button>
 
             <div className="flex flex-col gap-4">
               {skillGap.learning_path.map((entry, i) => (

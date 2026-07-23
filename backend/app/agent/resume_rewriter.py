@@ -5,17 +5,18 @@ from langchain_openai import AzureChatOpenAI
 
 from app.agent.prompts import RESUME_REWRITE_PROMPT
 from app.core.config import Settings, get_settings
-from app.models.schemas import ResumeAnalysis, ResumeRewrite
+from app.models.schemas import OptimizedResume, ResumeAnalysis
 
 logger = logging.getLogger(__name__)
 
 
 class ResumeRewriterAgent:
     """
-    LLM-only agent that strengthens resume content — summary, bullets, and skills phrasing —
-    while staying strictly grounded in what the candidate's resume actually says.
+    LLM-only agent that produces a complete, ready-to-use optimized resume — summary, bullets,
+    skills phrasing, and project descriptions all strengthened — while staying strictly grounded
+    in what the candidate's resume actually says.
 
-    Exposes a single stable interface — rewrite(...) → ResumeRewrite.
+    Exposes a single stable interface — rewrite(...) → OptimizedResume.
     """
 
     def __init__(self, settings: Settings) -> None:
@@ -27,13 +28,13 @@ class ResumeRewriterAgent:
             temperature=0.4,
             max_retries=2,
         )
-        self._chain = RESUME_REWRITE_PROMPT | self._llm.with_structured_output(ResumeRewrite)
+        self._chain = RESUME_REWRITE_PROMPT | self._llm.with_structured_output(OptimizedResume)
 
         logger.info("ResumeRewriterAgent initialised (deployment=%s)", settings.azure_openai_chat_deployment)
 
-    async def rewrite(self, resume_text: str, target_role: str, analysis: ResumeAnalysis) -> ResumeRewrite:
-        logger.info("Rewriting resume for role '%s'", target_role)
-        result: ResumeRewrite = await self._chain.ainvoke(
+    async def rewrite(self, resume_text: str, target_role: str, analysis: ResumeAnalysis) -> OptimizedResume:
+        logger.info("Optimizing resume for role '%s'", target_role)
+        result: OptimizedResume = await self._chain.ainvoke(
             {
                 "target_role": target_role,
                 "weaknesses": ", ".join(analysis.weaknesses),
@@ -42,7 +43,7 @@ class ResumeRewriterAgent:
                 "resume_text": resume_text,
             }
         )
-        logger.info("Resume rewrite complete — %d bullet rewrites", len(result.bullet_rewrites))
+        logger.info("Resume optimization complete — %d sections", len(result.sections))
         return result
 
 

@@ -1,6 +1,33 @@
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
+
+
+# ---------------------------------------------------------------------------
+# Authentication
+# ---------------------------------------------------------------------------
+
+class UserCreate(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=8, max_length=128)
+
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=1, max_length=128)
+
+
+class UserOut(BaseModel):
+    id: int
+    email: EmailStr
+
+    model_config = {"from_attributes": True}
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserOut
 
 
 # ---------------------------------------------------------------------------
@@ -187,21 +214,23 @@ class MatchResumeToJDResponse(BaseModel):
     match: JDMatchResult
 
 
-class BulletRewrite(BaseModel):
-    original: str = Field(..., description="The original bullet/line exactly as it appears in the resume")
-    improved: str = Field(..., description="A stronger rewritten version — action-verb led, sharper impact")
-    rationale: str = Field(..., description="One sentence explaining what changed and why it's stronger")
-
-
-class ResumeRewrite(BaseModel):
-    """Structured output produced by the resume-rewriter agent."""
-
-    improved_summary: str = Field(..., description="A stronger 2-4 sentence professional summary")
-    bullet_rewrites: list[BulletRewrite] = Field(
-        ..., description="Original -> improved pairs for the resume's most impactful bullets"
+class OptimizedResumeSection(BaseModel):
+    heading: str = Field(
+        ..., description="Section heading, e.g. 'Professional Summary', 'Work Experience', 'Projects', 'Skills', 'Education'"
     )
-    skills_section_rewrite: list[str] = Field(
-        ..., description="Cleaned-up, grouped skills section lines, e.g. 'Languages: Python, JavaScript, SQL'"
+    content: list[str] = Field(
+        ..., description="Ordered paragraphs/bullets for this section, ready to render or export as-is"
+    )
+
+
+class OptimizedResume(BaseModel):
+    """Structured output produced by the resume-optimizer agent — a complete, ready-to-use resume."""
+
+    contact_header: str = Field(
+        ..., description="Name and contact line, preserved from the source resume — never invented"
+    )
+    sections: list[OptimizedResumeSection] = Field(
+        ..., description="Ordered resume sections; omits any section the source resume doesn't have"
     )
 
 
@@ -214,7 +243,14 @@ class RewriteResumeRequest(BaseModel):
 
 
 class RewriteResumeResponse(BaseModel):
-    rewrite: ResumeRewrite
+    optimized_resume: OptimizedResume
+
+
+class DownloadOptimizedResumeRequest(BaseModel):
+    """Request body for the /api/toolkit/rewrite-resume/download endpoint — renders an already-generated
+    OptimizedResume to PDF without another LLM call."""
+
+    optimized_resume: OptimizedResume
 
 
 SkillPriority = Literal["High", "Medium", "Low"]
@@ -275,3 +311,37 @@ class GenerateCoverLetterRequest(BaseModel):
 class GenerateCoverLetterResponse(BaseModel):
     cover_letter: CoverLetter
     company_name: str | None = Field(None, description="Echoes whether/what personalization was applied")
+
+
+DifficultyLevel = Literal["Beginner", "Intermediate", "Advanced"]
+
+
+class LearningResourceEntry(BaseModel):
+    """A single personalized learning-path entry — never a fabricated specific course/instructor claim."""
+
+    skill: str
+    difficulty: DifficultyLevel
+    why_recommended: str = Field(..., description="Why this skill matters for this candidate's target role and gap")
+    what_to_look_for: str = Field(
+        ...,
+        description=(
+            "Honest guidance on what a good course should cover/how deep it should go — never a specific "
+            "fabricated course title or instructor name presented as real"
+        ),
+    )
+    udemy_search_url: str = Field(..., description="A real, always-valid Udemy search URL, built server-side")
+
+
+class RecommendLearningResourcesRequest(BaseModel):
+    """Request body for the /api/toolkit/learning-resources endpoint."""
+
+    extracted_text: str = Field(..., min_length=50)
+    target_role: str = Field(..., min_length=2, max_length=100)
+    analysis: ResumeAnalysis
+    extra_missing_skills: list[str] = Field(
+        default_factory=list, description="Optional extra gaps, e.g. missing keywords from a JD match"
+    )
+
+
+class RecommendLearningResourcesResponse(BaseModel):
+    resources: list[LearningResourceEntry]

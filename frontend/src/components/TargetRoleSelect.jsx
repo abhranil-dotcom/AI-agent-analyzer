@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { Briefcase, ChevronDown } from 'lucide-react'
-import { TARGET_ROLES, OTHER_ROLE } from '../constants/roles.js'
+import { ROLE_CATEGORIES, OTHER_ROLE } from '../constants/roles.js'
+
+const ALL_ROLES = ROLE_CATEGORIES.flatMap((group) => group.roles)
 
 export default function TargetRoleSelect({ value, onChange }) {
-  const isCustomValue = value !== '' && !TARGET_ROLES.includes(value)
+  const isCustomValue = value !== '' && !ALL_ROLES.includes(value)
   const [selection, setSelection] = useState(isCustomValue ? OTHER_ROLE : value)
   const [customText, setCustomText] = useState(isCustomValue ? value : '')
 
@@ -39,10 +41,14 @@ export default function TargetRoleSelect({ value, onChange }) {
           <option value="" disabled>
             Select a role…
           </option>
-          {TARGET_ROLES.map((role) => (
-            <option key={role} value={role}>
-              {role}
-            </option>
+          {ROLE_CATEGORIES.map((group) => (
+            <optgroup key={group.category} label={group.category}>
+              {group.roles.map((role) => (
+                <option key={role} value={role}>
+                  {role}
+                </option>
+              ))}
+            </optgroup>
           ))}
           <option value={OTHER_ROLE}>Other</option>
         </select>

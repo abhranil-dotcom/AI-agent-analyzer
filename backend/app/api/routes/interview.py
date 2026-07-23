@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.agent.answer_evaluator import AnswerEvaluatorAgent, get_answer_evaluator_agent
 from app.agent.interview_kit_generator import InterviewKitGeneratorAgent, get_interview_kit_agent
+from app.api.deps import get_current_user
 from app.data.companies.registry import get_company
 from app.models.schemas import (
     EvaluateAnswerRequest,
@@ -15,7 +16,7 @@ from app.services.vector_store import KnowledgeBaseUnavailableError
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/interview", tags=["interview"])
+router = APIRouter(prefix="/api/interview", tags=["interview"], dependencies=[Depends(get_current_user)])
 
 
 @router.post("/kit", response_model=GenerateInterviewKitResponse)
