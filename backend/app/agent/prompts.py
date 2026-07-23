@@ -1,5 +1,7 @@
 from langchain_core.prompts import ChatPromptTemplate
 
+from app.data.learning_platforms import PLATFORM_DESCRIPTIONS, PLATFORM_DISPLAY_NAMES
+
 SYSTEM_PROMPT = """You are an experienced ATS (Applicant Tracking System) and a senior technical recruiter \
 with 15+ years of experience hiring across software engineering, data science, AI/ML, DevOps, cloud, \
 cybersecurity, mobile development, UI/UX, and other technical fields.
@@ -326,27 +328,44 @@ COVER_LETTER_PROMPT = ChatPromptTemplate.from_messages([
 
 
 # ---------------------------------------------------------------------------
-# Phase 6 — Learning Resources (Udemy-search-linked personalized learning path)
+# Phase 6 — Learning Resources (multi-platform personalized learning path)
 # ---------------------------------------------------------------------------
 
-LEARNING_RESOURCES_SYSTEM_PROMPT = """You are a career coach building a personalized learning path from a \
-candidate's skill gaps for their target role.
+_PLATFORM_LIST_BLOCK = "\n".join(
+    f"- {key}: {PLATFORM_DISPLAY_NAMES[key]} — {PLATFORM_DESCRIPTIONS[key]}"
+    for key in PLATFORM_DISPLAY_NAMES
+)
 
-CRITICAL RULE: Never invent a specific course title, instructor name, or URL and present it as if it were a \
-real, currently-existing Udemy listing — you cannot verify that any particular course currently exists. \
-Instead, for each skill, describe honestly what a good course should cover and how deep it should go \
-(`what_to_look_for`) so the candidate can judge real search results themselves. A separate, real Udemy \
-search link is provided by the system for each skill — you do not need to produce any link.
+LEARNING_RESOURCES_SYSTEM_PROMPT = f"""You are a career coach building a personalized, multi-platform learning \
+path from a candidate's skill gaps for their target role.
+
+CRITICAL RULE: Never invent a specific course title, instructor name, duration, or URL and present it as if \
+it were a real, currently-existing listing — you cannot verify that any particular course is still live. \
+Your only job per (skill, platform) pick is to explain WHY it matters for this candidate and WHAT to look \
+for (`why_recommended`, `what_to_look_for`) and to judge `difficulty`. The system resolves the real title, \
+URL, and duration for every platform you pick — you never produce any link or exact course name yourself.
+
+Available platforms (the `platform` field must be one of these exact keys):
+{_PLATFORM_LIST_BLOCK}
 
 Guidelines:
 - Cover the given missing skills (both from the resume's own analysis and any extra gaps supplied, e.g. from \
 a job-description match), deduplicated, prioritized by relevance to the target role.
+- For EACH missing skill, pick 2-5 of the platforms above that are genuinely the most relevant — never all \
+15 for every skill. Match platform to skill category the way a real career coach would: e.g. cloud/DevOps \
+skills (Docker, Kubernetes, AWS) suit udemy/aws_skill_builder/coursera/youtube/microsoft_learn; AI/ML/data \
+skills suit kaggle_learn/coursera/freecodecamp/youtube/udemy; Java/backend skills suit \
+oracle_university/udemy/coursera/geeksforgeeks/leetcode; networking/security skills suit \
+cisco_networking_academy/udemy/coursera. Only pick a narrowly-scoped platform (aws_skill_builder, \
+google_cloud_skills_boost, oracle_university, cisco_networking_academy, kaggle_learn) when the skill \
+genuinely matches its specialty described above — never pick oracle_university for a cloud skill, or \
+leetcode for a tooling/platform skill like Docker.
 - difficulty: Beginner/Intermediate/Advanced — based on how foundational vs. advanced the skill is for this \
 target role, not the candidate's general seniority.
 - why_recommended: 1-2 sentences specific to this candidate's target role and gap — never generic filler.
 - what_to_look_for: 1-3 sentences of concrete guidance on course scope/depth/prerequisites to look for — \
 honest and specific, never a fabricated course/instructor claim.
-- Do not pad the list — cover exactly the skills given, one entry each."""
+- Do not pad the list — produce exactly the (skill, platform) picks that make sense, nothing more."""
 
 LEARNING_RESOURCES_PROMPT = ChatPromptTemplate.from_messages([
     ("system", LEARNING_RESOURCES_SYSTEM_PROMPT),
@@ -355,6 +374,7 @@ LEARNING_RESOURCES_PROMPT = ChatPromptTemplate.from_messages([
         "Target Role: {target_role}\n"
         "Missing Skills To Cover: {missing_skills}\n\n"
         "Resume:\n{resume_text}\n\n"
-        "Build a personalized learning-path entry for each missing skill listed above.",
+        "For each missing skill listed above, pick the most relevant platforms and build a personalized "
+        "learning-path entry for each (skill, platform) pair.",
     ),
 ])

@@ -2,6 +2,8 @@ from typing import Literal
 
 from pydantic import BaseModel, EmailStr, Field
 
+from app.data.learning_platforms import LearningPlatformKey
+
 
 # ---------------------------------------------------------------------------
 # Authentication
@@ -317,9 +319,19 @@ DifficultyLevel = Literal["Beginner", "Intermediate", "Advanced"]
 
 
 class LearningResourceEntry(BaseModel):
-    """A single personalized learning-path entry — never a fabricated specific course/instructor claim."""
+    """A single personalized learning-path entry — never a fabricated specific course/instructor claim.
+
+    platform_name, title, resource_url, estimated_duration, and is_curated are all resolved
+    server-side by app.data.learning_platforms.resolve_resource() — the LLM only ever decides
+    *which* skill+platform pairs to recommend and writes why_recommended/what_to_look_for.
+    """
 
     skill: str
+    platform: LearningPlatformKey
+    platform_name: str = Field(..., description="Backend-resolved display name — never LLM-trusted")
+    title: str = Field(
+        ..., description="A real curated resource title, or an honest 'Explore X on Y' fallback label"
+    )
     difficulty: DifficultyLevel
     why_recommended: str = Field(..., description="Why this skill matters for this candidate's target role and gap")
     what_to_look_for: str = Field(
@@ -329,7 +341,11 @@ class LearningResourceEntry(BaseModel):
             "fabricated course title or instructor name presented as real"
         ),
     )
-    udemy_search_url: str = Field(..., description="A real, always-valid Udemy search URL, built server-side")
+    estimated_duration: str | None = Field(
+        None, description="Only set when a genuinely known duration exists for a curated resource"
+    )
+    resource_url: str = Field(..., description="A real, always-valid URL, built server-side")
+    is_curated: bool = Field(..., description="True only for a verified specific resource, not a search fallback")
 
 
 class RecommendLearningResourcesRequest(BaseModel):

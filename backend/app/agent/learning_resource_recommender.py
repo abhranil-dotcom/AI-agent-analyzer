@@ -1,37 +1,44 @@
 import logging
 from functools import lru_cache
-from urllib.parse import quote
 
 from langchain_openai import AzureChatOpenAI
 from pydantic import BaseModel, Field
 
 from app.agent.prompts import LEARNING_RESOURCES_PROMPT
 from app.core.config import Settings, get_settings
+from app.data.learning_platforms import LearningPlatformKey, resolve_resource
 from app.models.schemas import DifficultyLevel, LearningResourceEntry, ResumeAnalysis
 
 logger = logging.getLogger(__name__)
 
 
 class _LearningResourceLLMEntry(BaseModel):
-    """LLM-facing shape — deliberately excludes udemy_search_url, which the agent computes itself
-    (a real, always-valid search link) rather than letting the model guess at one."""
+    """LLM-facing shape — deliberately excludes every factual field (title/url/duration), which
+    the agent resolves itself via resolve_resource() rather than letting the model guess."""
 
     skill: str
+    platform: LearningPlatformKey
     difficulty: DifficultyLevel
     why_recommended: str
     what_to_look_for: str
 
 
 class _LearningResourcesLLMOutput(BaseModel):
-    resources: list[_LearningResourceLLMEntry] = Field(..., description="One entry per missing skill given")
+    resources: list[_LearningResourceLLMEntry] = Field(
+        ..., description="2-5 platform picks per missing skill given"
+    )
 
 
 class LearningResourceRecommenderAgent:
     """
-    LLM-only agent that turns a candidate's missing skills into a personalized learning path.
+    LLM-only agent that turns a candidate's missing skills into a personalized, multi-platform
+    learning path (Udemy, Coursera, edX, freeCodeCamp, YouTube, Microsoft Learn, AWS Skill
+    Builder, Google Cloud Skills Boost, Oracle University, Cisco Networking Academy, Kaggle
+    Learn, Codecademy, GeeksforGeeks, LeetCode, HackerRank).
 
-    Never fabricates a specific course/instructor/URL — see LEARNING_RESOURCES_SYSTEM_PROMPT's
-    hard prohibition; the agent itself (not the LLM) attaches a real Udemy search URL per skill.
+    Never fabricates a specific course/instructor/URL/duration — see
+    LEARNING_RESOURCES_SYSTEM_PROMPT's hard prohibition; the agent itself (not the LLM) resolves
+    every factual field per (skill, platform) pick via app.data.learning_platforms.resolve_resource.
 
     Exposes a single stable interface — recommend(...) → list[LearningResourceEntry].
     """
@@ -67,16 +74,23 @@ class LearningResourceRecommenderAgent:
             }
         )
 
-        resources = [
-            LearningResourceEntry(
-                skill=entry.skill,
-                difficulty=entry.difficulty,
-                why_recommended=entry.why_recommended,
-                what_to_look_for=entry.what_to_look_for,
-                udemy_search_url=f"https://www.udemy.com/courses/search/?q={quote(entry.skill)}",
+        resources = []
+        for entry in result.resources:
+            resolved = resolve_resource(entry.platform, entry.skill)
+            resources.append(
+                LearningResourceEntry(
+                    skill=entry.skill,
+                    platform=entry.platform,
+                    platform_name=resolved.platform_name,
+                    title=resolved.title,
+                    difficulty=entry.difficulty,
+                    why_recommended=entry.why_recommended,
+                    what_to_look_for=entry.what_to_look_for,
+                    estimated_duration=resolved.estimated_duration,
+                    resource_url=resolved.resource_url,
+                    is_curated=resolved.is_curated,
+                )
             )
-            for entry in result.resources
-        ]
         logger.info("Learning resource recommendation complete — %d entries", len(resources))
         return resources
 

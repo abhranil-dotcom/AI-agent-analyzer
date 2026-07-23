@@ -1,0 +1,55 @@
+import {
+  Award,
+  BookMarked,
+  BookOpen,
+  Cloud,
+  CloudCog,
+  Code2,
+  Cpu,
+  Database,
+  FlaskConical,
+  GraduationCap,
+  Network,
+  Puzzle,
+  Terminal,
+  Trophy,
+  Video,
+} from 'lucide-react'
+
+// Purely presentational — stylized icon + accent color, not a scraped trademarked logo image.
+export const PLATFORM_META = {
+  udemy: { icon: GraduationCap, accent: 'text-violet-600 dark:text-violet-400 bg-violet-500/10' },
+  coursera: { icon: Award, accent: 'text-sky-600 dark:text-sky-400 bg-sky-500/10' },
+  edx: { icon: BookOpen, accent: 'text-indigo-600 dark:text-indigo-400 bg-indigo-500/10' },
+  freecodecamp: { icon: Code2, accent: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10' },
+  youtube: { icon: Video, accent: 'text-red-600 dark:text-red-400 bg-red-500/10' },
+  microsoft_learn: { icon: Cpu, accent: 'text-blue-600 dark:text-blue-400 bg-blue-500/10' },
+  aws_skill_builder: { icon: Cloud, accent: 'text-orange-600 dark:text-orange-400 bg-orange-500/10' },
+  google_cloud_skills_boost: { icon: CloudCog, accent: 'text-cyan-600 dark:text-cyan-400 bg-cyan-500/10' },
+  oracle_university: { icon: Database, accent: 'text-rose-600 dark:text-rose-400 bg-rose-500/10' },
+  cisco_networking_academy: { icon: Network, accent: 'text-teal-600 dark:text-teal-400 bg-teal-500/10' },
+  kaggle_learn: { icon: FlaskConical, accent: 'text-cyan-700 dark:text-cyan-300 bg-cyan-500/10' },
+  codecademy: { icon: Terminal, accent: 'text-slate-700 dark:text-slate-300 bg-slate-500/10' },
+  geeksforgeeks: { icon: BookMarked, accent: 'text-green-600 dark:text-green-400 bg-green-500/10' },
+  leetcode: { icon: Puzzle, accent: 'text-amber-600 dark:text-amber-400 bg-amber-500/10' },
+  hackerrank: { icon: Trophy, accent: 'text-lime-600 dark:text-lime-400 bg-lime-500/10' },
+}
+
+// Fixed display order for grouped sections — only platforms present in the results are rendered.
+export const PLATFORM_DISPLAY_ORDER = [
+  'udemy',
+  'coursera',
+  'edx',
+  'freecodecamp',
+  'youtube',
+  'microsoft_learn',
+  'aws_skill_builder',
+  'google_cloud_skills_boost',
+  'oracle_university',
+  'cisco_networking_academy',
+  'kaggle_learn',
+  'codecademy',
+  'geeksforgeeks',
+  'leetcode',
+  'hackerrank',
+]
