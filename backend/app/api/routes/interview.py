@@ -147,6 +147,15 @@ async def list_interview_history(
     return InterviewHistoryListResponse(entries=[InterviewHistoryEntry.model_validate(e) for e in entries])
 
 
+@router.delete("/history", status_code=status.HTTP_204_NO_CONTENT)
+async def clear_interview_history(
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> None:
+    """Deletes every interview history row for the current user — irreversible, confirmed client-side."""
+    db.query(InterviewHistory).filter(InterviewHistory.user_id == current_user.id).delete()
+    db.commit()
+
+
 @router.get("/history/{history_id}", response_model=InterviewHistoryDetail)
 async def get_interview_history(
     history_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)

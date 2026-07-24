@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AlertTriangle, Building2, Trash2 } from 'lucide-react'
-import { deleteInterviewHistory, fetchInterviewHistory } from '../api/client.js'
+import { clearInterviewHistory, deleteInterviewHistory, fetchInterviewHistory } from '../api/client.js'
 import { useToast } from '../context/ToastContext.jsx'
+import ConfirmDialog from '../components/ConfirmDialog.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import HistorySkeleton from '../components/HistorySkeleton.jsx'
 
@@ -11,7 +12,8 @@ export default function InterviewHistoryPage() {
   const { showToast } = useToast()
   const [entries, setEntries] = useState(null)
   const [error, setError] = useState(null)
-  const [deletingId, setDeletingId] = useState(null)
+  const [pendingDelete, setPendingDelete] = useState(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     fetchInterviewHistory()
@@ -19,16 +21,23 @@ export default function InterviewHistoryPage() {
       .catch((err) => setError(err.response?.data?.detail ?? 'Could not load interview history.'))
   }, [])
 
-  async function handleDelete(id) {
-    setDeletingId(id)
+  async function handleConfirmDelete() {
+    setIsDeleting(true)
     try {
-      await deleteInterviewHistory(id)
-      setEntries((current) => current.filter((e) => e.id !== id))
-      showToast('Interview deleted from history.')
+      if (pendingDelete.type === 'all') {
+        await clearInterviewHistory()
+        setEntries([])
+        showToast('Interview history cleared.')
+      } else {
+        await deleteInterviewHistory(pendingDelete.id)
+        setEntries((current) => current.filter((e) => e.id !== pendingDelete.id))
+        showToast('Interview deleted from history.')
+      }
+      setPendingDelete(null)
     } catch {
-      showToast('Could not delete this interview. Please try again.', 'error')
+      showToast('Could not delete. Please try again.', 'error')
     } finally {
-      setDeletingId(null)
+      setIsDeleting(false)
     }
   }
 
@@ -43,7 +52,19 @@ export default function InterviewHistoryPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="mb-2 text-2xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">Interview History</h1>
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">Interview History</h1>
+        {entries !== null && entries.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setPendingDelete({ type: 'all' })}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-500 transition-colors hover:border-red-300 hover:text-red-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:text-red-400"
+          >
+            <Trash2 className="h-4 w-4" />
+            Clear History
+          </button>
+        )}
+      </div>
 
       {entries === null && <HistorySkeleton />}
 
@@ -83,9 +104,10 @@ export default function InterviewHistoryPage() {
                 </button>
                 <button
                   type="button"
-                  disabled={deletingId === entry.id}
-                  onClick={() => handleDelete(entry.id)}
-                  className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 transition-colors hover:border-red-300 hover:text-red-600 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:hover:text-red-400"
+                  onClick={() =>
+                    setPendingDelete({ type: 'single', id: entry.id, companyName: entry.company_display_name })
+                  }
+                  className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 transition-colors hover:border-red-300 hover:text-red-600 dark:border-slate-700 dark:bg-slate-800 dark:hover:text-red-400"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
@@ -94,6 +116,20 @@ export default function InterviewHistoryPage() {
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title={pendingDelete?.type === 'all' ? 'Clear all interview history?' : 'Delete this interview?'}
+        description={
+          pendingDelete?.type === 'all'
+            ? 'This permanently deletes every saved mock interview session for your account. This cannot be undone.'
+            : `Your interview with "${pendingDelete?.companyName}" and its saved feedback will be permanently deleted. This cannot be undone.`
+        }
+        confirmLabel={pendingDelete?.type === 'all' ? 'Clear History' : 'Delete'}
+        isLoading={isDeleting}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   )
 }

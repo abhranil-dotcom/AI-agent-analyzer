@@ -232,3 +232,7 @@ export async function fetchInterviewHistoryDetail(id) {
 export async function deleteInterviewHistory(id) {
   await apiClient.delete(`/api/interview/history/${id}`)
 }
+
+export async function clearInterviewHistory() {
+  await apiClient.delete('/api/interview/history')
+}
