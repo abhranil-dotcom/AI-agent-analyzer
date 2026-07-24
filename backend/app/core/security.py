@@ -1,4 +1,6 @@
+import hashlib
 import logging
+import secrets
 from datetime import datetime, timedelta, timezone
 
 import bcrypt
@@ -15,6 +17,17 @@ def hash_password(plain_password: str) -> str:
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
+
+
+def generate_reset_token() -> str:
+    """Returns a high-entropy URL-safe token. The raw value is emailed and never stored."""
+    return secrets.token_urlsafe(32)
+
+
+def hash_reset_token(raw_token: str) -> str:
+    """SHA-256 (not bcrypt) is fine here: the input is already a random 256-bit token, not a
+    user-chosen password, so there's no offline dictionary-attack risk to slow down against."""
+    return hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
 
 
 def create_access_token(subject: str, settings: Settings | None = None) -> str:

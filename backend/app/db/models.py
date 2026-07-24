@@ -13,3 +13,8 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    # Password reset — stores a hash of the reset token (never the raw token, so a DB leak alone
+    # can't be used to reset accounts) plus its expiry. Both null when no reset is pending.
+    reset_token_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    reset_token_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

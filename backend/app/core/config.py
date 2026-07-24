@@ -34,6 +34,15 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60 * 24 * 7  # 7 days
 
+    # Password reset emails — sent via Resend's HTTP API. RESEND_API_KEY has no default: forgot-
+    # password requests are accepted either way (no user enumeration), but sending is a no-op
+    # (logged, not raised) if the key is unset, so local dev without email creds doesn't crash.
+    resend_api_key: str = ""
+    email_from: str = "onboarding@resend.dev"
+    # Base URL of the deployed frontend, used to build the reset link emailed to the user.
+    frontend_url: str = "http://localhost:5173"
+    password_reset_token_expire_minutes: int = 30
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
