@@ -5,6 +5,7 @@ import {
   Award,
   Briefcase,
   FileText,
+  GraduationCap,
   Lightbulb,
   MessagesSquare,
   Mic,
@@ -42,7 +43,7 @@ function ScoreTile({ label, score, icon: Icon }) {
         </div>
       )}
       <div className="min-w-0">
-        <p className="truncate text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">{label}</p>
+        <p className="text-xs font-bold uppercase leading-snug tracking-widest text-slate-500 dark:text-slate-400">{label}</p>
         {score == null && <p className="mt-1 text-sm font-semibold text-slate-400 dark:text-slate-500">No data yet</p>}
       </div>
     </div>
@@ -56,7 +57,7 @@ function StatTile({ label, value, icon: Icon }) {
         <Icon className="h-6 w-6" />
       </div>
       <div className="min-w-0">
-        <p className="truncate text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">{label}</p>
+        <p className="text-xs font-bold uppercase leading-snug tracking-widest text-slate-500 dark:text-slate-400">{label}</p>
         <p className="text-xl font-black text-slate-900 dark:text-slate-100">{value}</p>
       </div>
     </div>
@@ -94,11 +95,11 @@ function ProgressTrail({ points }) {
 
 const QUICK_ACTIONS = [
   { label: 'Upload Resume', to: '/upload', icon: Upload },
-  { label: 'Resume History', to: '/resume-history', icon: FileText },
-  { label: 'Interview History', to: '/interview-history', icon: MessagesSquare },
+  { label: 'Resume vs Job Description', to: '/toolkit/match-jd', icon: Target },
   { label: 'Resume Rewrite', to: '/toolkit/rewrite', icon: PenLine },
   { label: 'Cover Letter Generator', to: '/toolkit/cover-letter', icon: Briefcase },
   { label: 'Mock Interview', to: '/mock-interview', icon: Mic },
+  { label: 'Skill Gap & Learning Path', to: '/toolkit/skill-gap', icon: GraduationCap },
 ]
 
 export default function DashboardPage() {
@@ -161,7 +162,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Career overview */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <ScoreTile label="Latest ATS Score" score={summary.latest_ats_score} icon={FileText} />
         <ScoreTile label="Latest JD Match" score={summary.latest_jd_match_score} icon={Target} />
         <ScoreTile label="Latest Interview Score" score={summary.latest_interview_score} icon={Mic} />
@@ -169,7 +170,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Dashboard analytics */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatTile label="Total Resumes" value={summary.total_resumes} icon={FileText} />
         <StatTile label="Total Interviews" value={summary.total_interviews} icon={MessagesSquare} />
         <StatTile label="Average ATS Score" value={summary.average_ats_score ?? '—'} icon={Target} />
