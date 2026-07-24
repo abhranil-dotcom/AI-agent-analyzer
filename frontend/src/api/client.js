@@ -91,6 +91,10 @@ export async function analyzeResume(extractedText, targetRole, resumeFilename = 
   return response.data
 }
 
+export async function clearCompanyRecommendationHistory() {
+  await apiClient.delete('/api/companies/history')
+}
+
 export async function recommendCompanies(extractedText, targetRole, analysis) {
   const response = await apiClient.post('/api/companies/recommend', {
     extracted_text: extractedText,

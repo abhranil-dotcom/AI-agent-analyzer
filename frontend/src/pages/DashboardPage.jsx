@@ -12,11 +12,14 @@ import {
   Target,
   TrendingDown,
   TrendingUp,
+  Trash2,
   Upload,
 } from 'lucide-react'
-import { fetchDashboardSummary } from '../api/client.js'
+import { clearCompanyRecommendationHistory, fetchDashboardSummary } from '../api/client.js'
+import { useToast } from '../context/ToastContext.jsx'
 import ScoreRing, { COLOR_STYLES, getScoreTier } from '../components/ScoreRing.jsx'
 import CompanyRecommendationCard from '../components/CompanyRecommendationCard.jsx'
+import ConfirmDialog from '../components/ConfirmDialog.jsx'
 import DashboardSkeleton from '../components/DashboardSkeleton.jsx'
 
 function getGreeting() {
@@ -92,10 +95,27 @@ function ProgressTrail({ points }) {
 
 export default function DashboardPage() {
   const navigate = useNavigate()
+  const { showToast } = useToast()
   const [summary, setSummary] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
   const [retryCount, setRetryCount] = useState(0)
+  const [showClearCompanies, setShowClearCompanies] = useState(false)
+  const [isClearingCompanies, setIsClearingCompanies] = useState(false)
+
+  async function handleClearCompanies() {
+    setIsClearingCompanies(true)
+    try {
+      await clearCompanyRecommendationHistory()
+      setSummary((current) => ({ ...current, recommended_companies: [] }))
+      showToast('Recommended companies cleared.')
+      setShowClearCompanies(false)
+    } catch {
+      showToast('Could not clear recommended companies. Please try again.', 'error')
+    } finally {
+      setIsClearingCompanies(false)
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -225,7 +245,17 @@ export default function DashboardPage() {
       {/* Recommended companies */}
       {summary.recommended_companies.length > 0 && (
         <section>
-          <h3 className="mb-4 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Recommended Companies</h3>
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Recommended Companies</h3>
+            <button
+              type="button"
+              onClick={() => setShowClearCompanies(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-500 transition-colors hover:border-red-300 hover:text-red-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:text-red-400"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Clear
+            </button>
+          </div>
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {summary.recommended_companies.map((rec) => (
               <CompanyRecommendationCard key={rec.slug} recommendation={rec} onSelect={() => navigate('/upload')} />
@@ -275,6 +305,16 @@ export default function DashboardPage() {
           Upload Resume
         </button>
       </section>
+
+      <ConfirmDialog
+        open={showClearCompanies}
+        title="Clear recommended companies?"
+        description="This removes your saved company recommendations from the Dashboard. This cannot be undone."
+        confirmLabel="Clear"
+        isLoading={isClearingCompanies}
+        onConfirm={handleClearCompanies}
+        onCancel={() => setShowClearCompanies(false)}
+      />
     </div>
   )
 }

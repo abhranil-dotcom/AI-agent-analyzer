@@ -43,3 +43,13 @@ async def recommend_companies(
     db.commit()
 
     return RecommendCompaniesResponse(recommendations=recommendations, target_role=body.target_role)
+
+
+@router.delete("/history", status_code=status.HTTP_204_NO_CONTENT)
+async def clear_company_recommendation_history(
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> None:
+    """Clears all saved company-recommendation runs for the current user — used by the
+    Dashboard's "Clear" control on the Recommended Companies section."""
+    db.query(CompanyRecommendationHistory).filter(CompanyRecommendationHistory.user_id == current_user.id).delete()
+    db.commit()
