@@ -121,6 +121,15 @@ async def list_resume_history(
     return ResumeHistoryListResponse(entries=[ResumeHistoryEntry.model_validate(e) for e in entries])
 
 
+@router.delete("/history", status_code=status.HTTP_204_NO_CONTENT)
+async def clear_resume_history(
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> None:
+    """Deletes every resume history row for the current user — irreversible, confirmed client-side."""
+    db.query(ResumeHistory).filter(ResumeHistory.user_id == current_user.id).delete()
+    db.commit()
+
+
 @router.get("/history/compare", response_model=ResumeHistoryCompareResponse)
 async def compare_resume_history(
     ids: str = Query(..., description="Two comma-separated resume history ids, e.g. '3,7'"),

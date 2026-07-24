@@ -210,6 +210,10 @@ export async function deleteResumeHistory(id) {
   await apiClient.delete(`/api/resume/history/${id}`)
 }
 
+export async function clearResumeHistory() {
+  await apiClient.delete('/api/resume/history')
+}
+
 export async function saveInterviewHistory(payload) {
   const response = await apiClient.post('/api/interview/history', payload)
   return response.data
