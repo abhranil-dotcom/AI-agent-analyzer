@@ -3,14 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import {
   AlertTriangle,
   Award,
-  Briefcase,
   FileText,
-  GraduationCap,
   Lightbulb,
   MessagesSquare,
   Mic,
   Minus,
-  PenLine,
   Sparkles,
   Target,
   TrendingDown,
@@ -93,14 +90,7 @@ function ProgressTrail({ points }) {
   )
 }
 
-const QUICK_ACTIONS = [
-  { label: 'Upload Resume', to: '/upload', icon: Upload },
-  { label: 'Resume vs Job Description', to: '/toolkit/match-jd', icon: Target },
-  { label: 'Resume Rewrite', to: '/toolkit/rewrite', icon: PenLine },
-  { label: 'Cover Letter Generator', to: '/toolkit/cover-letter', icon: Briefcase },
-  { label: 'Mock Interview', to: '/mock-interview', icon: Mic },
-  { label: 'Skill Gap & Learning Path', to: '/toolkit/skill-gap', icon: GraduationCap },
-]
+const QUICK_ACTIONS = [{ label: 'Upload Resume', to: '/upload', icon: Upload }]
 
 export default function DashboardPage() {
   const navigate = useNavigate()
