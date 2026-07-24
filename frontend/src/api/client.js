@@ -135,6 +135,10 @@ export async function matchResumeToJD(extractedText, targetRole, analysis, jobDe
   return response.data
 }
 
+export async function clearJDMatchHistory() {
+  await apiClient.delete('/api/toolkit/match-jd/history')
+}
+
 export async function rewriteResume(extractedText, targetRole, analysis) {
   const response = await apiClient.post('/api/toolkit/rewrite-resume', {
     extracted_text: extractedText,

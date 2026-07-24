@@ -66,6 +66,16 @@ async def match_resume_to_jd(
     return MatchResumeToJDResponse(match=match)
 
 
+@router.delete("/match-jd/history", status_code=status.HTTP_204_NO_CONTENT)
+async def clear_jd_match_history(
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> None:
+    """Clears all saved JD-match runs for the current user — used by the Dashboard's clear
+    control on the Latest JD Match tile."""
+    db.query(JDMatchHistory).filter(JDMatchHistory.user_id == current_user.id).delete()
+    db.commit()
+
+
 @router.post("/rewrite-resume", response_model=RewriteResumeResponse)
 async def rewrite_resume(
     body: RewriteResumeRequest,

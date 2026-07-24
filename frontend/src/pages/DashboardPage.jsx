@@ -15,7 +15,7 @@ import {
   Trash2,
   Upload,
 } from 'lucide-react'
-import { clearCompanyRecommendationHistory, fetchDashboardSummary } from '../api/client.js'
+import { clearCompanyRecommendationHistory, clearJDMatchHistory, fetchDashboardSummary } from '../api/client.js'
 import { useToast } from '../context/ToastContext.jsx'
 import ScoreRing, { COLOR_STYLES, getScoreTier } from '../components/ScoreRing.jsx'
 import CompanyRecommendationCard from '../components/CompanyRecommendationCard.jsx'
@@ -29,12 +29,22 @@ function getGreeting() {
   return 'Good evening'
 }
 
-function ScoreTile({ label, score, icon: Icon }) {
+function ScoreTile({ label, score, icon: Icon, onClear }) {
   const tier = score != null ? getScoreTier(score) : null
   const ringClass = tier ? COLOR_STYLES[tier.color].ring : ''
 
   return (
-    <div className="flex items-center gap-4 rounded-2xl border border-slate-200/60 bg-white/90 p-5 shadow-xl backdrop-blur-xl dark:border-white/[0.08] dark:bg-slate-900/80">
+    <div className="relative flex items-center gap-4 rounded-2xl border border-slate-200/60 bg-white/90 p-5 shadow-xl backdrop-blur-xl dark:border-white/[0.08] dark:bg-slate-900/80">
+      {onClear && score != null && (
+        <button
+          type="button"
+          onClick={onClear}
+          aria-label={`Clear ${label}`}
+          className="absolute right-2 top-2 rounded-md p-1 text-slate-300 transition-colors hover:text-red-500 dark:text-slate-600 dark:hover:text-red-400"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      )}
       {score != null ? (
         <ScoreRing score={score} ringClass={ringClass} size={56} />
       ) : (
@@ -102,6 +112,8 @@ export default function DashboardPage() {
   const [retryCount, setRetryCount] = useState(0)
   const [showClearCompanies, setShowClearCompanies] = useState(false)
   const [isClearingCompanies, setIsClearingCompanies] = useState(false)
+  const [showClearJDMatch, setShowClearJDMatch] = useState(false)
+  const [isClearingJDMatch, setIsClearingJDMatch] = useState(false)
 
   async function handleClearCompanies() {
     setIsClearingCompanies(true)
@@ -114,6 +126,23 @@ export default function DashboardPage() {
       showToast('Could not clear recommended companies. Please try again.', 'error')
     } finally {
       setIsClearingCompanies(false)
+    }
+  }
+
+  async function handleClearJDMatch() {
+    setIsClearingJDMatch(true)
+    try {
+      await clearJDMatchHistory()
+      // Overall Career Score and AI Suggestions are derived from the JD match score too, so
+      // refetch the whole summary instead of patching just one field.
+      const data = await fetchDashboardSummary()
+      setSummary(data)
+      showToast('JD match history cleared.')
+      setShowClearJDMatch(false)
+    } catch {
+      showToast('Could not clear JD match history. Please try again.', 'error')
+    } finally {
+      setIsClearingJDMatch(false)
     }
   }
 
@@ -172,7 +201,12 @@ export default function DashboardPage() {
       {/* Career overview */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <ScoreTile label="Latest ATS Score" score={summary.latest_ats_score} icon={FileText} />
-        <ScoreTile label="Latest JD Match" score={summary.latest_jd_match_score} icon={Target} />
+        <ScoreTile
+          label="Latest JD Match"
+          score={summary.latest_jd_match_score}
+          icon={Target}
+          onClear={() => setShowClearJDMatch(true)}
+        />
         <ScoreTile label="Latest Interview Score" score={summary.latest_interview_score} icon={Mic} />
         <ScoreTile label="Overall Career Score" score={summary.overall_career_score} icon={Award} />
       </div>
@@ -314,6 +348,16 @@ export default function DashboardPage() {
         isLoading={isClearingCompanies}
         onConfirm={handleClearCompanies}
         onCancel={() => setShowClearCompanies(false)}
+      />
+
+      <ConfirmDialog
+        open={showClearJDMatch}
+        title="Clear JD match history?"
+        description="This removes your saved job-description match results, including the Latest JD Match score on this Dashboard. This cannot be undone."
+        confirmLabel="Clear"
+        isLoading={isClearingJDMatch}
+        onConfirm={handleClearJDMatch}
+        onCancel={() => setShowClearJDMatch(false)}
       />
     </div>
   )
