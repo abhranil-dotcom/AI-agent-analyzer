@@ -1,11 +1,12 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AlertTriangle, ArrowRight, Loader2, RotateCcw, Trophy } from 'lucide-react'
 import AnswerEvaluationPanel from '../components/AnswerEvaluationPanel.jsx'
 import InterviewQuestionCard from '../components/InterviewQuestionCard.jsx'
 import ScoreRing, { COLOR_STYLES, getScoreTier } from '../components/ScoreRing.jsx'
 import Stepper from '../components/Stepper.jsx'
-import { evaluateAnswer } from '../api/client.js'
+import { evaluateAnswer, saveInterviewHistory } from '../api/client.js'
+import { useToast } from '../context/ToastContext.jsx'
 import { CATEGORY_LABELS, flattenQuestions } from '../constants/interview.js'
 
 function SummaryView({ history, company, onStartOver }) {
@@ -72,9 +73,35 @@ export default function MockInterviewPage({ interviewKit, targetRole, company })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState(null)
   const navigate = useNavigate()
+  const { showToast } = useToast()
+  const sessionStartRef = useRef(Date.now())
+  const hasSavedRef = useRef(false)
 
   const isComplete = currentIndex >= questions.length
   const currentQuestion = !isComplete ? questions[currentIndex] : null
+
+  // Persist the completed session once — there's no single backend call to hook this into since
+  // a session spans many /evaluate calls, so this is the one natural "interview complete" moment.
+  useEffect(() => {
+    if (!isComplete || hasSavedRef.current || history.length === 0) return
+    hasSavedRef.current = true
+
+    const durationSeconds = Math.round((Date.now() - sessionStartRef.current) / 1000)
+    saveInterviewHistory({
+      company_slug: company.slug,
+      company_display_name: company.display_name,
+      target_role: targetRole,
+      duration_seconds: durationSeconds,
+      qa: history.map((h) => ({
+        question: h.question.question,
+        category: h.question.category,
+        candidate_answer: h.answer,
+        evaluation: h.evaluation,
+      })),
+    })
+      .then(() => showToast('Interview saved to history.'))
+      .catch(() => showToast('Could not save this interview to history.', 'error'))
+  }, [isComplete, history, company, targetRole, showToast])
 
   async function handleSubmit() {
     if (!answer.trim() || isSubmitting) return

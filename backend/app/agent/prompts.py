@@ -166,6 +166,16 @@ completeness, communication quality, and confidence — be specific about what w
 - missing_points: concrete points or concepts the answer should have covered but didn't.
 - ideal_answer: a strong example answer to this specific question, tailored to the target role and company.
 - improvement_suggestions: 2-4 specific, actionable suggestions for improving this exact answer.
+- communication_score (0-100): how clearly, concisely, and coherently the answer was articulated — \
+independent of whether the technical content was correct.
+- technical_score (0-100): technical correctness and depth specifically — independent of how well it was \
+communicated.
+- confidence_score (0-100): how confident and decisive the answer reads (hedging, vagueness, and \
+uncertainty should score low; clear, assured statements should score high) — independent of correctness.
+
+These three sub-scores should genuinely differentiate from each other and from the overall `score` when the \
+answer's strengths and weaknesses are uneven (e.g. a technically correct but poorly communicated answer should \
+show a high technical_score and a lower communication_score) — do not just repeat `score` three times.
 
 Be honest and constructive — do not inflate scores. A vague or incomplete answer should score low even if \
 politely worded."""

@@ -20,7 +20,7 @@ export default function AnalysisPage({ result, targetRole, analysis, onAnalysisC
       setIsLoading(true)
       setError(null)
       try {
-        const { analysis: analysisData } = await analyzeResume(result.extracted_text, targetRole)
+        const { analysis: analysisData } = await analyzeResume(result.extracted_text, targetRole, result.filename)
         if (!cancelled) onAnalysisComplete(analysisData)
       } catch (err) {
         if (cancelled) return
@@ -49,7 +49,7 @@ export default function AnalysisPage({ result, targetRole, analysis, onAnalysisC
     <>
       <button
         type="button"
-        onClick={() => navigate('/')}
+        onClick={() => navigate('/upload')}
         className="mb-8 inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 transition-colors hover:text-brand-600 dark:text-slate-400 dark:hover:text-brand-400"
       >
         <ArrowLeft className="h-4 w-4" />

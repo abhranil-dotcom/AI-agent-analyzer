@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 
 from app.api.routes.auth import router as auth_router
 from app.api.routes.companies import router as companies_router
+from app.api.routes.dashboard import router as dashboard_router
 from app.api.routes.interview import router as interview_router
 from app.api.routes.resume import router as resume_router
 from app.api.routes.toolkit import router as toolkit_router
@@ -66,6 +67,7 @@ app.include_router(resume_router)
 app.include_router(companies_router)
 app.include_router(interview_router)
 app.include_router(toolkit_router)
+app.include_router(dashboard_router)
 
 
 @app.on_event("startup")

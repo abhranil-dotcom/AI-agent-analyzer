@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, EmailStr, Field
@@ -90,6 +91,9 @@ class AnalyzeResumeRequest(BaseModel):
     extracted_text: str = Field(..., min_length=50, description="Plain text extracted from the resume PDF")
     target_role: str = Field(
         ..., min_length=2, max_length=100, description="Role the candidate is applying for"
+    )
+    resume_filename: str | None = Field(
+        None, max_length=255, description="Original uploaded file name, for Resume History display only"
     )
 
 
@@ -189,6 +193,9 @@ class AnswerEvaluation(BaseModel):
     missing_points: list[str]
     ideal_answer: str
     improvement_suggestions: list[str]
+    communication_score: int = Field(..., ge=0, le=100, description="How clearly and confidently the answer was communicated")
+    technical_score: int = Field(..., ge=0, le=100, description="Technical correctness and depth of the answer")
+    confidence_score: int = Field(..., ge=0, le=100, description="How confident/decisive the answer reads, independent of correctness")
 
 
 class EvaluateAnswerResponse(BaseModel):
@@ -374,3 +381,97 @@ class RecommendLearningResourcesRequest(BaseModel):
 
 class RecommendLearningResourcesResponse(BaseModel):
     resources: list[LearningResourceEntry]
+
+
+# ---------------------------------------------------------------------------
+# Phase 7 — Dashboard, Resume History & Interview History
+# ---------------------------------------------------------------------------
+
+class ResumeHistoryEntry(BaseModel):
+    """Summary row shown in the Resume History list and the Dashboard's 'recent resume' card."""
+
+    id: int
+    resume_filename: str
+    uploaded_at: datetime
+    target_role: str
+    ats_score: int
+
+    model_config = {"from_attributes": True}
+
+
+class ResumeHistoryDetail(ResumeHistoryEntry):
+    """Full saved analysis — retrieved as-is from the database, never regenerated."""
+
+    analysis: ResumeAnalysis
+
+
+class ResumeHistoryListResponse(BaseModel):
+    entries: list[ResumeHistoryEntry]
+
+
+class ResumeHistoryCompareResponse(BaseModel):
+    a: ResumeHistoryDetail
+    b: ResumeHistoryDetail
+
+
+class InterviewQAEntry(BaseModel):
+    """One question/answer/evaluation turn within a saved interview session."""
+
+    question: str
+    category: QuestionCategory
+    candidate_answer: str
+    evaluation: AnswerEvaluation
+
+
+class SaveInterviewHistoryRequest(BaseModel):
+    """Request body for POST /api/interview/history — saved once when a mock interview session
+    completes. Scores are computed server-side from `qa`, never trusted from the client."""
+
+    company_slug: str
+    company_display_name: str
+    target_role: str
+    duration_seconds: int | None = None
+    qa: list[InterviewQAEntry] = Field(..., min_length=1)
+
+
+class InterviewHistoryEntry(BaseModel):
+    """Summary row shown in the Interview History list and the Dashboard's 'recent interview' card."""
+
+    id: int
+    company_slug: str
+    company_display_name: str
+    target_role: str
+    interview_date: datetime
+    overall_score: int
+
+    model_config = {"from_attributes": True}
+
+
+class InterviewHistoryDetail(InterviewHistoryEntry):
+    duration_seconds: int | None
+    communication_score: int
+    technical_score: int
+    confidence_score: int
+    qa: list[InterviewQAEntry]
+
+
+class InterviewHistoryListResponse(BaseModel):
+    entries: list[InterviewHistoryEntry]
+
+
+class DashboardSummaryResponse(BaseModel):
+    """Aggregation of a user's latest history rows — no AI calls, just cheap indexed lookups."""
+
+    preferred_role: str | None = Field(None, description="target_role of the most recent history row, if any")
+    latest_ats_score: int | None = None
+    latest_jd_match_score: int | None = None
+    latest_interview_score: int | None = None
+    overall_career_score: int | None = Field(
+        None, description="Rounded mean of whichever of {ats, jd_match, interview} scores are present"
+    )
+    recent_resume: ResumeHistoryEntry | None = None
+    recent_interview: InterviewHistoryEntry | None = None
+    recommended_companies: list[CompanyRecommendation] = Field(default_factory=list)
+    ai_suggestions: list[str] = Field(
+        default_factory=list, description="Templated, not LLM-generated — derived from stored history data"
+    )

@@ -2,6 +2,7 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
+from sqlalchemy.orm import Session
 
 from app.agent.cover_letter_generator import CoverLetterGeneratorAgent, get_cover_letter_generator_agent
 from app.agent.jd_matcher import JDMatcherAgent, get_jd_matcher_agent
@@ -12,6 +13,8 @@ from app.agent.learning_resource_recommender import (
 from app.agent.resume_rewriter import ResumeRewriterAgent, get_resume_rewriter_agent
 from app.agent.skill_gap_analyzer import SkillGapAnalyzerAgent, get_skill_gap_analyzer_agent
 from app.api.deps import get_current_user
+from app.db.database import get_db
+from app.db.models import JDMatchHistory, User
 from app.models.schemas import (
     AnalyzeSkillGapRequest,
     AnalyzeSkillGapResponse,
@@ -36,6 +39,8 @@ router = APIRouter(prefix="/api/toolkit", tags=["toolkit"], dependencies=[Depend
 async def match_resume_to_jd(
     body: MatchResumeToJDRequest,
     agent: JDMatcherAgent = Depends(get_jd_matcher_agent),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ) -> MatchResumeToJDResponse:
     """Score the resume against a specific pasted job description."""
     try:
@@ -46,6 +51,18 @@ async def match_resume_to_jd(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="The job description matching service is unavailable. Please try again shortly.",
         ) from exc
+
+    # Persisted automatically so the Dashboard has a real "Latest JD Match Score" to read.
+    db.add(
+        JDMatchHistory(
+            user_id=current_user.id,
+            target_role=body.target_role,
+            jd_match_score=match.jd_match_score,
+            match_json=match.model_dump(),
+        )
+    )
+    db.commit()
+
     return MatchResumeToJDResponse(match=match)
 
 

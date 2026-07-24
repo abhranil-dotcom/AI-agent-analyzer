@@ -19,7 +19,7 @@ export default function NotFoundPage() {
         className="mt-6 inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-brand-600 to-accent-500 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand-500/25 transition-all hover:opacity-90 hover:shadow-brand-500/40"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to upload
+        Back to Dashboard
       </button>
     </div>
   )

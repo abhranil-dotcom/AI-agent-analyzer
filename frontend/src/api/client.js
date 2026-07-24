@@ -82,10 +82,11 @@ export async function uploadResume(file) {
   return response.data
 }
 
-export async function analyzeResume(extractedText, targetRole) {
+export async function analyzeResume(extractedText, targetRole, resumeFilename = null) {
   const response = await apiClient.post('/api/resume/analyze', {
     extracted_text: extractedText,
     target_role: targetRole,
+    resume_filename: resumeFilename,
   })
   return response.data
 }
@@ -183,4 +184,47 @@ export async function generateCoverLetter(extractedText, targetRole, analysis, c
     company_name: companyName ?? null,
   })
   return response.data
+}
+
+export async function fetchDashboardSummary() {
+  const response = await apiClient.get('/api/dashboard/summary')
+  return response.data
+}
+
+export async function fetchResumeHistory() {
+  const response = await apiClient.get('/api/resume/history')
+  return response.data
+}
+
+export async function fetchResumeHistoryDetail(id) {
+  const response = await apiClient.get(`/api/resume/history/${id}`)
+  return response.data
+}
+
+export async function compareResumeHistory(idA, idB) {
+  const response = await apiClient.get('/api/resume/history/compare', { params: { ids: `${idA},${idB}` } })
+  return response.data
+}
+
+export async function deleteResumeHistory(id) {
+  await apiClient.delete(`/api/resume/history/${id}`)
+}
+
+export async function saveInterviewHistory(payload) {
+  const response = await apiClient.post('/api/interview/history', payload)
+  return response.data
+}
+
+export async function fetchInterviewHistory() {
+  const response = await apiClient.get('/api/interview/history')
+  return response.data
+}
+
+export async function fetchInterviewHistoryDetail(id) {
+  const response = await apiClient.get(`/api/interview/history/${id}`)
+  return response.data
+}
+
+export async function deleteInterviewHistory(id) {
+  await apiClient.delete(`/api/interview/history/${id}`)
 }
