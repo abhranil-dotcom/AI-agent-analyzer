@@ -30,7 +30,7 @@ export default function Header() {
             </div>
             <div>
               <p className="text-sm font-bold leading-tight tracking-tight text-slate-900 dark:text-slate-100">
-                AI Resume Analyzer
+                AI Career Assistant
               </p>
             </div>
           </Link>

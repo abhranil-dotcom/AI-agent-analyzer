@@ -8,7 +8,7 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
-    app_name: str = "AI Resume Analyzer API"
+    app_name: str = "AI Career Assistant API"
     app_env: str = "development"
     debug: bool = True
 

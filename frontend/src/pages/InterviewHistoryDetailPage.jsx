@@ -1,10 +1,20 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { AlertTriangle, ArrowLeft } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, CheckCircle2, Lightbulb } from 'lucide-react'
 import { fetchInterviewHistoryDetail } from '../api/client.js'
 import AnswerEvaluationPanel from '../components/AnswerEvaluationPanel.jsx'
 import InterviewKitSkeleton from '../components/InterviewKitSkeleton.jsx'
 import ScoreRing, { COLOR_STYLES, getScoreTier } from '../components/ScoreRing.jsx'
+
+const STRENGTH_THRESHOLD = 80
+const WEAKNESS_THRESHOLD = 60
+
+function computeSessionOverview(qa) {
+  const strengths = qa.filter((entry) => entry.evaluation.score >= STRENGTH_THRESHOLD).map((entry) => entry.question)
+  const weaknesses = qa.filter((entry) => entry.evaluation.score < WEAKNESS_THRESHOLD).map((entry) => entry.question)
+  const finalSuggestions = [...new Set(qa.flatMap((entry) => entry.evaluation.improvement_suggestions))]
+  return { strengths, weaknesses, finalSuggestions }
+}
 
 export default function InterviewHistoryDetailPage() {
   const { id } = useParams()
@@ -40,7 +50,9 @@ export default function InterviewHistoryDetailPage() {
         </div>
       )}
 
-      {detail && (
+      {detail && (() => {
+        const overview = computeSessionOverview(detail.qa)
+        return (
         <div className="flex flex-col gap-6">
           <div className="mb-2 text-center">
             <h1 className="pb-1 text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl bg-gradient-to-br from-slate-900 via-slate-700 to-slate-500 bg-clip-text text-transparent dark:from-white dark:via-slate-200 dark:to-slate-500">
@@ -73,6 +85,59 @@ export default function InterviewHistoryDetailPage() {
             })}
           </div>
 
+          {(overview.strengths.length > 0 || overview.weaknesses.length > 0 || overview.finalSuggestions.length > 0) && (
+            <section className="rounded-2xl border border-slate-200/60 bg-white/90 p-6 shadow-xl backdrop-blur-xl dark:border-white/[0.08] dark:bg-slate-900/80">
+              <h3 className="mb-4 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Session Overview</h3>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                {overview.strengths.length > 0 && (
+                  <div className="rounded-xl border border-emerald-200/50 bg-emerald-500/[0.04] p-4 dark:border-emerald-800/30 dark:bg-emerald-950/20">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                      <p className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Strengths</p>
+                    </div>
+                    <ul className="mt-3 space-y-1.5">
+                      {overview.strengths.map((q) => (
+                        <li key={q} className="text-sm text-slate-700 dark:text-slate-300">
+                          {q}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {overview.weaknesses.length > 0 && (
+                  <div className="rounded-xl border border-amber-200/50 bg-amber-500/[0.04] p-4 dark:border-amber-800/30 dark:bg-amber-950/20">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                      <p className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Weaknesses</p>
+                    </div>
+                    <ul className="mt-3 space-y-1.5">
+                      {overview.weaknesses.map((q) => (
+                        <li key={q} className="text-sm text-slate-700 dark:text-slate-300">
+                          {q}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {overview.finalSuggestions.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Lightbulb className="h-4 w-4 shrink-0 text-brand-600 dark:text-brand-400" />
+                      <p className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Final Suggestions</p>
+                    </div>
+                    <ol className="mt-3 space-y-1.5">
+                      {overview.finalSuggestions.map((item, i) => (
+                        <li key={i} className="text-sm text-slate-700 dark:text-slate-300">
+                          {i + 1}. {item}
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
           <div className="flex flex-col gap-6">
             {detail.qa.map((entry, i) => (
               <div key={i} className="flex flex-col gap-3">
@@ -88,7 +153,8 @@ export default function InterviewHistoryDetailPage() {
             ))}
           </div>
         </div>
-      )}
+        )
+      })()}
     </>
   )
 }

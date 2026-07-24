@@ -28,6 +28,25 @@ export default function DashboardSkeleton() {
         ))}
       </div>
 
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {[0, 1, 2, 3].map((i) => (
+          <ScoreTileSkeleton key={i} />
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {[0, 1].map((i) => (
+          <div
+            key={i}
+            className="animate-pulse space-y-3 rounded-2xl border border-slate-200/60 bg-white/90 p-6 shadow-xl backdrop-blur-xl dark:border-white/[0.08] dark:bg-slate-900/80"
+          >
+            <Block className="h-4 w-32" />
+            <Block className="h-3 w-full opacity-60" />
+            <Block className="h-3 w-4/5 opacity-60" />
+          </div>
+        ))}
+      </div>
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {[0, 1].map((i) => (
           <div

@@ -8,12 +8,14 @@ import {
   Lightbulb,
   MessagesSquare,
   Mic,
+  Minus,
   PenLine,
   Sparkles,
   Target,
+  TrendingDown,
+  TrendingUp,
   Upload,
 } from 'lucide-react'
-import { useAuth } from '../context/AuthContext.jsx'
 import { fetchDashboardSummary } from '../api/client.js'
 import ScoreRing, { COLOR_STYLES, getScoreTier } from '../components/ScoreRing.jsx'
 import CompanyRecommendationCard from '../components/CompanyRecommendationCard.jsx'
@@ -24,17 +26,6 @@ function getGreeting() {
   if (hour < 12) return 'Good morning'
   if (hour < 18) return 'Good afternoon'
   return 'Good evening'
-}
-
-function getDisplayName(email) {
-  if (!email) return ''
-  const local = email.split('@')[0]
-  return local
-    .replace(/[._]+/g, ' ')
-    .split(' ')
-    .filter(Boolean)
-    .map((w) => w[0].toUpperCase() + w.slice(1))
-    .join(' ')
 }
 
 function ScoreTile({ label, score, icon: Icon }) {
@@ -58,6 +49,49 @@ function ScoreTile({ label, score, icon: Icon }) {
   )
 }
 
+function StatTile({ label, value, icon: Icon }) {
+  return (
+    <div className="flex items-center gap-4 rounded-2xl border border-slate-200/60 bg-white/90 p-5 shadow-xl backdrop-blur-xl dark:border-white/[0.08] dark:bg-slate-900/80">
+      <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-brand-500/10 text-brand-600 dark:text-brand-400">
+        <Icon className="h-6 w-6" />
+      </div>
+      <div className="min-w-0">
+        <p className="truncate text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">{label}</p>
+        <p className="text-xl font-black text-slate-900 dark:text-slate-100">{value}</p>
+      </div>
+    </div>
+  )
+}
+
+function ProgressTrail({ points }) {
+  if (points.length === 0) {
+    return <p className="text-sm text-slate-400 dark:text-slate-500">Not enough data yet.</p>
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {points.map((point, i) => (
+        <div key={point.date} className="flex items-center gap-2">
+          <div className="flex flex-col items-center gap-1 rounded-xl border border-slate-200/60 bg-slate-50 px-3 py-2 dark:border-slate-700/40 dark:bg-slate-800/40">
+            <span className="text-base font-black text-slate-900 dark:text-slate-100">{point.score}</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+              {new Date(point.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+            </span>
+          </div>
+          {i < points.length - 1 &&
+            (points[i + 1].score > point.score ? (
+              <TrendingUp className="h-4 w-4 shrink-0 text-emerald-500" />
+            ) : points[i + 1].score < point.score ? (
+              <TrendingDown className="h-4 w-4 shrink-0 text-red-500" />
+            ) : (
+              <Minus className="h-4 w-4 shrink-0 text-slate-400" />
+            ))}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 const QUICK_ACTIONS = [
   { label: 'Upload Resume', to: '/upload', icon: Upload },
   { label: 'Resume History', to: '/resume-history', icon: FileText },
@@ -68,7 +102,6 @@ const QUICK_ACTIONS = [
 ]
 
 export default function DashboardPage() {
-  const { user } = useAuth()
   const navigate = useNavigate()
   const [summary, setSummary] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -118,8 +151,9 @@ export default function DashboardPage() {
     <div className="flex flex-col gap-8">
       {/* Welcome */}
       <div>
+        <p className="text-xs font-bold uppercase tracking-widest text-brand-600 dark:text-brand-400">Welcome Back!</p>
         <h1 className="pb-1 text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl bg-gradient-to-br from-slate-900 via-slate-700 to-slate-500 bg-clip-text text-transparent dark:from-white dark:via-slate-200 dark:to-slate-500">
-          {getGreeting()}, {getDisplayName(user?.email)}
+          {getGreeting()} 👋
         </h1>
         <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
           {summary.preferred_role ? `Targeting ${summary.preferred_role} roles.` : 'Upload a resume to get started.'}
@@ -132,6 +166,26 @@ export default function DashboardPage() {
         <ScoreTile label="Latest JD Match" score={summary.latest_jd_match_score} icon={Target} />
         <ScoreTile label="Latest Interview Score" score={summary.latest_interview_score} icon={Mic} />
         <ScoreTile label="Overall Career Score" score={summary.overall_career_score} icon={Award} />
+      </div>
+
+      {/* Dashboard analytics */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatTile label="Total Resumes" value={summary.total_resumes} icon={FileText} />
+        <StatTile label="Total Interviews" value={summary.total_interviews} icon={MessagesSquare} />
+        <StatTile label="Average ATS Score" value={summary.average_ats_score ?? '—'} icon={Target} />
+        <StatTile label="Average Interview Score" value={summary.average_interview_score ?? '—'} icon={Mic} />
+      </div>
+
+      {/* Resume + interview progress */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <section className="flex flex-col gap-4 rounded-2xl border border-slate-200/60 bg-white/90 p-6 shadow-xl backdrop-blur-xl dark:border-white/[0.08] dark:bg-slate-900/80">
+          <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Resume Progress</h3>
+          <ProgressTrail points={summary.resume_progress} />
+        </section>
+        <section className="flex flex-col gap-4 rounded-2xl border border-slate-200/60 bg-white/90 p-6 shadow-xl backdrop-blur-xl dark:border-white/[0.08] dark:bg-slate-900/80">
+          <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Interview Progress</h3>
+          <ProgressTrail points={summary.interview_progress} />
+        </section>
       </div>
 
       {/* Recent resume + interview */}

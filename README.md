@@ -1,4 +1,4 @@
-# AI Resume Analyzer — Week 1 (Friday 1 Deliverable)
+# AI Career Assistant — Week 1 (Friday 1 Deliverable)
 
 Scope for this milestone: upload a PDF resume from React, send it to FastAPI,
 extract the text with PyPDF, and display it back in the browser. No AI/LLM

@@ -459,15 +459,35 @@ class InterviewHistoryListResponse(BaseModel):
     entries: list[InterviewHistoryEntry]
 
 
+class ProgressPoint(BaseModel):
+    """One point in a resume/interview score trend, oldest to newest."""
+
+    date: datetime
+    score: int
+
+
 class DashboardSummaryResponse(BaseModel):
-    """Aggregation of a user's latest history rows — no AI calls, just cheap indexed lookups."""
+    """Aggregation of a user's latest history rows — no AI calls, just cheap indexed lookups
+    and aggregate queries."""
 
     preferred_role: str | None = Field(None, description="target_role of the most recent history row, if any")
     latest_ats_score: int | None = None
     latest_jd_match_score: int | None = None
     latest_interview_score: int | None = None
     overall_career_score: int | None = Field(
-        None, description="Rounded mean of whichever of {ats, jd_match, interview} scores are present"
+        None,
+        description=(
+            "Weighted: ats*0.4 + jd_match*0.3 + interview*0.3, renormalized over whichever of "
+            "those three are present so it always reflects current progress"
+        ),
+    )
+    total_resumes: int = 0
+    total_interviews: int = 0
+    average_ats_score: int | None = None
+    average_interview_score: int | None = None
+    resume_progress: list[ProgressPoint] = Field(default_factory=list, description="Last 10 ats_score values, oldest first")
+    interview_progress: list[ProgressPoint] = Field(
+        default_factory=list, description="Last 10 overall_score values, oldest first"
     )
     recent_resume: ResumeHistoryEntry | None = None
     recent_interview: InterviewHistoryEntry | None = None
