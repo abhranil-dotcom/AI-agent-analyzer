@@ -7,11 +7,10 @@ from app.core.config import get_settings
 
 settings = get_settings()
 
-# SQLite needs check_same_thread=False to be used across FastAPI's request-scoped sessions;
-# other dialects (e.g. Postgres in production) ignore this argument.
-_connect_args = {"check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
-
-engine = create_engine(settings.database_url, connect_args=_connect_args)
+# pool_pre_ping guards against stale connections being handed out after Postgres closes an
+# idle connection (common on managed/free-tier instances) — SQLAlchemy pings and reconnects
+# instead of surfacing an OperationalError on the next query.
+engine = create_engine(settings.database_url, pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 

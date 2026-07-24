@@ -23,10 +23,10 @@ class Settings(BaseSettings):
     azure_openai_chat_deployment: str = ""
     azure_openai_embeddings_deployment: str = ""
 
-    # Authentication — DATABASE_URL defaults to a local SQLite file for dev. Render's free tier
-    # has no persistent disk, so production MUST set DATABASE_URL to a hosted Postgres instance
-    # (e.g. Neon/Supabase/Render Postgres free tier) or every registered user is lost on restart.
-    database_url: str = "sqlite:///./resume_analyzer.db"
+    # Authentication — must point at a PostgreSQL instance (e.g. Render/Neon/Supabase Postgres).
+    # No default: the app should fail fast at startup rather than silently falling back to a
+    # database that isn't the real, persistent one.
+    database_url: str
     # Dev-only fallback so local auth works out of the box — production MUST override this via
     # the JWT_SECRET_KEY env var, otherwise every deploy invalidates all issued tokens and (worse)
     # a known default secret would let anyone forge tokens.

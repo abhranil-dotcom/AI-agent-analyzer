@@ -7,12 +7,10 @@ email-validator==2.2.0
 pydantic-settings==2.7.1
 python-dotenv==1.0.1
 
-# Authentication
+# Authentication (PostgreSQL via DATABASE_URL — see .env.example)
 sqlalchemy==2.0.36
 bcrypt==4.2.1
 pyjwt==2.10.1
-# Only needed if DATABASE_URL points at Postgres (recommended for production — see .env.example);
-# harmless to install when using the default local SQLite.
 psycopg2-binary==2.9.10
 
 # PDF export for the optimized resume download
