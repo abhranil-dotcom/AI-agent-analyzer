@@ -90,8 +90,6 @@ function ProgressTrail({ points }) {
   )
 }
 
-const QUICK_ACTIONS = [{ label: 'Upload Resume', to: '/upload', icon: Upload }]
-
 export default function DashboardPage() {
   const navigate = useNavigate()
   const [summary, setSummary] = useState(null)
@@ -254,22 +252,28 @@ export default function DashboardPage() {
         </section>
       )}
 
-      {/* Quick actions */}
-      <section>
-        <h3 className="mb-4 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Quick Actions</h3>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          {QUICK_ACTIONS.map(({ label, to, icon: Icon }) => (
-            <button
-              key={to}
-              type="button"
-              onClick={() => navigate(to)}
-              className="flex flex-col items-center gap-2 rounded-xl border border-slate-200/60 bg-white/60 px-3 py-4 text-center text-xs font-semibold text-slate-600 transition-colors hover:border-brand-300 hover:text-brand-600 dark:border-white/[0.08] dark:bg-slate-900/40 dark:text-slate-300 dark:hover:text-brand-400"
-            >
-              <Icon className="h-5 w-5" />
-              {label}
-            </button>
-          ))}
+      {/* Upload CTA */}
+      <section className="flex flex-col items-center gap-5 rounded-2xl border border-slate-200/60 bg-white/90 px-6 py-12 text-center shadow-xl backdrop-blur-xl sm:px-12 dark:border-white/[0.08] dark:bg-slate-900/80">
+        <div className="grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-brand-500/20 to-accent-500/20 text-brand-500 dark:text-brand-400">
+          <Upload className="h-8 w-8" strokeWidth={1.75} />
         </div>
+        <div>
+          <h2 className="pb-1 text-2xl font-extrabold tracking-tight sm:text-3xl bg-gradient-to-br from-slate-900 via-slate-700 to-slate-500 bg-clip-text text-transparent dark:from-white dark:via-slate-200 dark:to-slate-500">
+            Ready for your next career analysis?
+          </h2>
+          <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-slate-500 dark:text-slate-400">
+            Upload your latest resume to receive updated ATS scoring, company recommendations,
+            interview preparation, and personalized AI insights.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => navigate('/upload')}
+          className="mt-2 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-600 to-accent-500 px-10 py-5 text-lg font-bold text-white shadow-lg shadow-brand-500/25 transition-all hover:opacity-90 hover:shadow-brand-500/40"
+        >
+          <Upload className="h-5 w-5" />
+          Upload Resume
+        </button>
       </section>
     </div>
   )
