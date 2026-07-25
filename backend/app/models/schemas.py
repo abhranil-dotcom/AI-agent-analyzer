@@ -492,6 +492,3 @@ class DashboardSummaryResponse(BaseModel):
     recent_resume: ResumeHistoryEntry | None = None
     recent_interview: InterviewHistoryEntry | None = None
     recommended_companies: list[CompanyRecommendation] = Field(default_factory=list)
-    ai_suggestions: list[str] = Field(
-        default_factory=list, description="Templated, not LLM-generated — derived from stored history data"
-    )

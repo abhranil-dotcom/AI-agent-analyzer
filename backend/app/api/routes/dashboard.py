@@ -20,7 +20,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"], dependencies=[Depends(get_current_user)])
 
 _MAX_RECOMMENDED_COMPANIES = 5
-_MAX_AI_SUGGESTIONS = 5
 _MAX_PROGRESS_POINTS = 10
 
 # Overall Career Score weighting — renormalized over whichever of these are present so a user
@@ -35,47 +34,6 @@ def _weighted_overall_score(ats: int | None, jd_match: int | None, interview: in
     total_weight = sum(_SCORE_WEIGHTS[k] for k in present)
     weighted_sum = sum(v * _SCORE_WEIGHTS[k] for k, v in present.items())
     return round(weighted_sum / total_weight)
-
-
-def _build_ai_suggestions(
-    latest_resume: ResumeHistory | None,
-    latest_interview: InterviewHistory | None,
-    latest_jd_match: JDMatchHistory | None,
-) -> list[str]:
-    """Purely templated from already-stored data — no LLM call, so this costs nothing extra
-    on every dashboard load."""
-    suggestions: list[str] = []
-
-    if latest_resume is not None:
-        analysis = latest_resume.analysis_json
-        for skill in analysis.get("missing_skills", [])[:2]:
-            suggestions.append(f"Improve {skill} before applying to {latest_resume.target_role} roles.")
-        if latest_resume.ats_score < 70:
-            suggestions.append("Your resume's ATS score is below 70 — try the Resume Rewrite tool to strengthen it.")
-
-    if latest_interview is not None:
-        dimensions = {
-            "communication": latest_interview.communication_score,
-            "technical depth": latest_interview.technical_score,
-            "confidence": latest_interview.confidence_score,
-        }
-        weakest_label, weakest_score = min(dimensions.items(), key=lambda item: item[1])
-        suggestions.append(
-            f"Your {weakest_label} scored lowest ({weakest_score}/100) in your last mock interview — "
-            "practice more questions focused on that."
-        )
-
-    if latest_jd_match is not None:
-        missing_keywords = latest_jd_match.match_json.get("missing_keywords", [])[:3]
-        if missing_keywords:
-            suggestions.append(
-                f"Add these keywords to better match job descriptions: {', '.join(missing_keywords)}."
-            )
-
-    if not suggestions:
-        suggestions.append("Upload your resume to get personalized, data-driven suggestions here.")
-
-    return suggestions[:_MAX_AI_SUGGESTIONS]
 
 
 @router.get("/summary", response_model=DashboardSummaryResponse)
@@ -172,5 +130,4 @@ async def get_dashboard_summary(
         recent_resume=ResumeHistoryEntry.model_validate(latest_resume) if latest_resume else None,
         recent_interview=InterviewHistoryEntry.model_validate(latest_interview) if latest_interview else None,
         recommended_companies=recommended_companies,
-        ai_suggestions=_build_ai_suggestions(latest_resume, latest_interview, latest_jd_match),
     )

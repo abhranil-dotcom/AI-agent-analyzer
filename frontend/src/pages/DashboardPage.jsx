@@ -4,11 +4,9 @@ import {
   AlertTriangle,
   Award,
   FileText,
-  Lightbulb,
   MessagesSquare,
   Mic,
   Minus,
-  Sparkles,
   Target,
   TrendingDown,
   TrendingUp,
@@ -24,9 +22,10 @@ import DashboardSkeleton from '../components/DashboardSkeleton.jsx'
 
 function getGreeting() {
   const hour = new Date().getHours()
-  if (hour < 12) return 'Good morning'
-  if (hour < 18) return 'Good afternoon'
-  return 'Good evening'
+  if (hour >= 5 && hour < 12) return 'Good morning'
+  if (hour >= 12 && hour < 17) return 'Good afternoon'
+  if (hour >= 17 && hour < 21) return 'Good evening'
+  return 'Good night'
 }
 
 function ScoreTile({ label, score, icon: Icon, onClear }) {
@@ -114,6 +113,7 @@ export default function DashboardPage() {
   const [isClearingCompanies, setIsClearingCompanies] = useState(false)
   const [showClearJDMatch, setShowClearJDMatch] = useState(false)
   const [isClearingJDMatch, setIsClearingJDMatch] = useState(false)
+  const [greeting] = useState(getGreeting)
 
   async function handleClearCompanies() {
     setIsClearingCompanies(true)
@@ -133,8 +133,8 @@ export default function DashboardPage() {
     setIsClearingJDMatch(true)
     try {
       await clearJDMatchHistory()
-      // Overall Career Score and AI Suggestions are derived from the JD match score too, so
-      // refetch the whole summary instead of patching just one field.
+      // Overall Career Score is derived from the JD match score too, so refetch the whole
+      // summary instead of patching just one field.
       const data = await fetchDashboardSummary()
       setSummary(data)
       showToast('JD match history cleared.')
@@ -191,7 +191,7 @@ export default function DashboardPage() {
       <div>
         <p className="text-xs font-bold uppercase tracking-widest text-brand-600 dark:text-brand-400">Welcome Back!</p>
         <h1 className="pb-1 text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl bg-gradient-to-br from-slate-900 via-slate-700 to-slate-500 bg-clip-text text-transparent dark:from-white dark:via-slate-200 dark:to-slate-500">
-          {getGreeting()} 👋
+          {greeting} 👋
         </h1>
         <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
           {summary.preferred_role ? `Targeting ${summary.preferred_role} roles.` : 'Upload a resume to get started.'}
@@ -295,24 +295,6 @@ export default function DashboardPage() {
               <CompanyRecommendationCard key={rec.slug} recommendation={rec} onSelect={() => navigate('/upload')} />
             ))}
           </div>
-        </section>
-      )}
-
-      {/* AI suggestions */}
-      {summary.ai_suggestions.length > 0 && (
-        <section className="rounded-2xl border border-slate-200/60 bg-white/90 p-6 shadow-xl backdrop-blur-xl dark:border-white/[0.08] dark:bg-slate-900/80">
-          <div className="mb-3 flex items-center gap-2">
-            <Sparkles className="h-4 w-4 shrink-0 text-brand-600 dark:text-brand-400" />
-            <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">AI Suggestions</h3>
-          </div>
-          <ul className="flex flex-col gap-2.5">
-            {summary.ai_suggestions.map((suggestion) => (
-              <li key={suggestion} className="flex items-start gap-2.5 text-sm text-slate-600 dark:text-slate-300">
-                <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
-                <span>{suggestion}</span>
-              </li>
-            ))}
-          </ul>
         </section>
       )}
 
