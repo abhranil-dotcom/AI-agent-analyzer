@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { AlertTriangle, ArrowLeft, CheckCircle2, Lightbulb } from 'lucide-react'
 import { fetchInterviewHistoryDetail } from '../api/client.js'
 import AnswerEvaluationPanel from '../components/AnswerEvaluationPanel.jsx'
+import DeliveryEvaluationPanel from '../components/DeliveryEvaluationPanel.jsx'
 import InterviewKitSkeleton from '../components/InterviewKitSkeleton.jsx'
 import ScoreRing, { COLOR_STYLES, getScoreTier } from '../components/ScoreRing.jsx'
 
@@ -149,6 +150,13 @@ export default function InterviewHistoryDetailPage() {
                   <p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-slate-300">{entry.candidate_answer}</p>
                 </div>
                 <AnswerEvaluationPanel evaluation={entry.evaluation} />
+                {entry.evaluation.speaking_clarity && (
+                  <DeliveryEvaluationPanel
+                    evaluation={entry.evaluation}
+                    speechMetrics={entry.speech_metrics}
+                    videoMetrics={entry.video_metrics}
+                  />
+                )}
               </div>
             ))}
           </div>

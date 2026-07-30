@@ -22,14 +22,16 @@ export default function VoiceAnswerInput({ question, onSubmit, isSubmitting }) {
 
   async function handleStop() {
     setIsFinalizing(true)
-    const { transcript: finalTranscript, durationSeconds } = await stop()
+    const { transcript: finalTranscript, durationSeconds, ...recognitionMetrics } = await stop()
     setIsFinalizing(false)
     if (!finalTranscript) {
       setEmptyWarning(true)
       return
     }
     setEmptyWarning(false)
-    onSubmit(finalTranscript, { speechMetrics: computeSpeechMetrics(finalTranscript, durationSeconds) })
+    onSubmit(finalTranscript, {
+      speechMetrics: computeSpeechMetrics(finalTranscript, durationSeconds, recognitionMetrics),
+    })
   }
 
   const busy = isSubmitting || isFinalizing

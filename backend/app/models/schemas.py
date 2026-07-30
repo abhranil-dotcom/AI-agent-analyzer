@@ -184,22 +184,39 @@ class SpeechMetrics(BaseModel):
     filler_word_count: int = Field(..., ge=0)
     filler_words: list[str] = Field(default_factory=list, description="The actual filler words detected, e.g. ['um', 'like']")
     duration_seconds: float = Field(..., ge=0)
+    speech_confidence: float | None = Field(
+        None, ge=0, le=1, description="Average Speech Recognition confidence across final results — a rough clarity/pronunciation proxy, not true phonetic analysis"
+    )
+    pause_count: int | None = Field(None, ge=0, description="Number of noticeable pauses between recognized speech segments")
+    longest_pause_seconds: float | None = Field(None, ge=0)
+    total_pause_seconds: float | None = Field(None, ge=0)
+
+
+CameraPositioning = Literal["well_centered", "too_close", "too_far", "off_center"]
 
 
 class VideoMetrics(BaseModel):
-    """Presentation metrics computed client-side from periodic in-browser face-landmark sampling
-    during a Video mode answer. Deliberately scoped to what a face-only model can honestly
-    measure — no shoulder/body posture, no true gaze tracking, just camera-facing/steadiness
-    proxies. Optional — absent entirely for Text/Voice mode."""
+    """Presentation metrics computed client-side from periodic in-browser face-landmark and
+    frame sampling during a Video mode answer. Deliberately scoped to what a face-only model and
+    simple pixel analysis can honestly measure — no shoulder/body posture, no true gaze tracking,
+    no aesthetic judgment of a background, just camera-facing/steadiness/lighting/motion proxies.
+    Optional — absent entirely for Text/Voice mode."""
 
     face_presence_ratio: float = Field(..., ge=0, le=1, description="Fraction of sampled frames a face was detected at all")
     camera_facing_ratio: float = Field(
         ..., ge=0, le=1, description="Fraction of sampled frames the face was roughly centered/frontal — proxy for eye contact"
     )
     head_stability_score: int = Field(
-        ..., ge=0, le=100, description="Derived from head yaw/pitch/roll variance — proxy for posture steadiness"
+        ..., ge=0, le=100, description="Derived from head position variance — proxy for posture/head steadiness, not full-body posture"
     )
     sample_count: int = Field(..., ge=0)
+    average_brightness: int | None = Field(None, ge=0, le=100, description="Average sampled frame brightness — lighting-quality proxy")
+    background_motion_score: int | None = Field(
+        None, ge=0, le=100, description="Frame-to-frame pixel change outside the face region — higher means a busier/more distracting background"
+    )
+    camera_positioning: CameraPositioning | None = Field(
+        None, description="Deterministic bucket from face size/centering — not an LLM guess"
+    )
 
 
 class EvaluateAnswerRequest(BaseModel):
@@ -228,6 +245,25 @@ class AnswerEvaluation(BaseModel):
     communication_score: int = Field(..., ge=0, le=100, description="How clearly and confidently the answer was communicated")
     technical_score: int = Field(..., ge=0, le=100, description="Technical correctness and depth of the answer")
     confidence_score: int = Field(..., ge=0, le=100, description="How confident/decisive the answer reads, independent of correctness")
+
+    # Voice/Video-only delivery analysis — all None for Text mode, populated only when
+    # `speech_metrics`/`video_metrics` were provided. Kept separate from the four scores above so
+    # a "Communication & Presentation Score" can be derived without conflating it with the
+    # technical/overall scoring that already exists for every mode.
+    speaking_clarity: str | None = Field(None, description="Short assessment of how clearly the answer was spoken, grounded in pace/filler/grammar/pause data")
+    pronunciation_feedback: str | None = Field(
+        None, description="Grounded ONLY in the recognizer's confidence score — a rough proxy, never claimed as true phonetic analysis"
+    )
+    grammar_feedback: str | None = Field(None, description="Grammar assessment of the spoken answer's transcript")
+    pause_analysis: str | None = Field(None, description="Assessment of pause count/length, grounded in real pause timing data")
+    communication_strengths: list[str] = Field(default_factory=list)
+    communication_improvement_suggestions: list[str] = Field(default_factory=list)
+
+    # Video-only — additionally None for Voice mode.
+    camera_positioning_feedback: str | None = Field(None, description="Feedback on framing/distance/centering, grounded in the deterministic camera_positioning bucket")
+    presentation_score: int | None = Field(None, ge=0, le=100, description="Video-only: camera engagement + steadiness + lighting/background, feeds the derived Communication & Presentation Score")
+    presentation_strengths: list[str] = Field(default_factory=list)
+    presentation_improvement_suggestions: list[str] = Field(default_factory=list)
 
 
 class EvaluateAnswerResponse(BaseModel):
@@ -453,6 +489,11 @@ class InterviewQAEntry(BaseModel):
     category: QuestionCategory
     candidate_answer: str
     evaluation: AnswerEvaluation
+    # Raw client-measured metrics, persisted alongside the evaluation so the saved history detail
+    # view can show the same real numbers (WPM, camera positioning, etc.) DeliveryEvaluationPanel
+    # shows live — None for Text mode turns.
+    speech_metrics: SpeechMetrics | None = None
+    video_metrics: VideoMetrics | None = None
 
 
 class SaveInterviewHistoryRequest(BaseModel):

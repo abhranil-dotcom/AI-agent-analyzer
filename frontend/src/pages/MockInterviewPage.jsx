@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AlertTriangle, ArrowRight, RotateCcw, Trophy } from 'lucide-react'
 import AnswerEvaluationPanel from '../components/AnswerEvaluationPanel.jsx'
+import DeliveryEvaluationPanel from '../components/DeliveryEvaluationPanel.jsx'
 import InterviewModeSelect from '../components/InterviewModeSelect.jsx'
 import InterviewQuestionCard from '../components/InterviewQuestionCard.jsx'
 import TextAnswerInput from '../components/TextAnswerInput.jsx'
@@ -12,8 +13,9 @@ import Stepper from '../components/Stepper.jsx'
 import { evaluateAnswer, saveInterviewHistory } from '../api/client.js'
 import { useToast } from '../context/ToastContext.jsx'
 import { CATEGORY_LABELS, flattenQuestions } from '../constants/interview.js'
+import { averageCommunicationPresentationScore, averageScore } from '../lib/scoreAggregation.js'
 
-function SummaryView({ history, company, onStartOver }) {
+function SummaryView({ history, company, mode, onStartOver }) {
   const average = Math.round(history.reduce((sum, h) => sum + h.evaluation.score, 0) / history.length)
   const tier = getScoreTier(average)
   const s = COLOR_STYLES[tier.color]
@@ -24,6 +26,12 @@ function SummaryView({ history, company, onStartOver }) {
     if (!byCategory[cat]) byCategory[cat] = []
     byCategory[cat].push(h.evaluation.score)
   }
+
+  const evaluations = history.map((h) => h.evaluation)
+  const technicalAvg = mode !== 'text' ? averageScore(evaluations, 'technical_score') : null
+  const commsAvg = mode !== 'text' ? averageCommunicationPresentationScore(evaluations) : null
+  const speechSamples = history.map((h) => h.speechMetrics).filter(Boolean)
+  const videoSamples = history.map((h) => h.videoMetrics).filter(Boolean)
 
   return (
     <section className="rounded-2xl border border-slate-200/60 bg-white/90 p-6 shadow-xl backdrop-blur-xl sm:p-8 dark:border-white/[0.08] dark:bg-slate-900/80">
@@ -42,6 +50,24 @@ function SummaryView({ history, company, onStartOver }) {
         </div>
       </div>
 
+      {mode !== 'text' && technicalAvg !== null && commsAvg !== null && (
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {[
+            { label: 'Technical Score', score: technicalAvg },
+            { label: mode === 'video' ? 'Communication & Presentation Score' : 'Communication Score', score: commsAvg },
+          ].map(({ label, score }) => {
+            const t = getScoreTier(score)
+            const c = COLOR_STYLES[t.color]
+            return (
+              <div key={label} className={`flex items-center gap-4 rounded-xl border px-5 py-4 ${c.wrap}`}>
+                <ScoreRing score={score} ringClass={c.ring} size={56} />
+                <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{label}</p>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
       <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
         {Object.entries(byCategory).map(([cat, scores]) => {
           const avg = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
@@ -55,6 +81,43 @@ function SummaryView({ history, company, onStartOver }) {
           )
         })}
       </div>
+
+      {speechSamples.length > 0 && (
+        <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div className="rounded-xl border border-slate-200/50 p-4 text-center dark:border-slate-700/30">
+            <p className="text-2xl font-black text-slate-900 dark:text-slate-100">
+              {Math.round(speechSamples.reduce((a, b) => a + b.words_per_minute, 0) / speechSamples.length)}
+            </p>
+            <p className="mt-1 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Avg WPM</p>
+          </div>
+          <div className="rounded-xl border border-slate-200/50 p-4 text-center dark:border-slate-700/30">
+            <p className="text-2xl font-black text-slate-900 dark:text-slate-100">
+              {speechSamples.reduce((a, b) => a + b.filler_word_count, 0)}
+            </p>
+            <p className="mt-1 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Filler Words</p>
+          </div>
+          {videoSamples.length > 0 && (
+            <>
+              <div className="rounded-xl border border-slate-200/50 p-4 text-center dark:border-slate-700/30">
+                <p className="text-2xl font-black text-slate-900 dark:text-slate-100">
+                  {Math.round((videoSamples.reduce((a, b) => a + b.camera_facing_ratio, 0) / videoSamples.length) * 100)}%
+                </p>
+                <p className="mt-1 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                  Camera Engagement
+                </p>
+              </div>
+              <div className="rounded-xl border border-slate-200/50 p-4 text-center dark:border-slate-700/30">
+                <p className="text-2xl font-black text-slate-900 dark:text-slate-100">
+                  {Math.round(videoSamples.reduce((a, b) => a + b.head_stability_score, 0) / videoSamples.length)}
+                </p>
+                <p className="mt-1 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                  Head Steadiness
+                </p>
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       <button
         type="button"
@@ -102,6 +165,8 @@ export default function MockInterviewPage({ interviewKit, targetRole, company })
         category: h.question.category,
         candidate_answer: h.answer,
         evaluation: h.evaluation,
+        speech_metrics: h.speechMetrics ?? null,
+        video_metrics: h.videoMetrics ?? null,
       })),
     })
       .then(() => showToast('Interview saved to history.'))
@@ -123,7 +188,16 @@ export default function MockInterviewPage({ interviewKit, targetRole, company })
         { interviewMode: mode, speechMetrics: metrics.speechMetrics, videoMetrics: metrics.videoMetrics },
       )
       setEvaluation(data.evaluation)
-      setHistory((prev) => [...prev, { question: currentQuestion, answer: answerText, evaluation: data.evaluation }])
+      setHistory((prev) => [
+        ...prev,
+        {
+          question: currentQuestion,
+          answer: answerText,
+          evaluation: data.evaluation,
+          speechMetrics: metrics.speechMetrics ?? null,
+          videoMetrics: metrics.videoMetrics ?? null,
+        },
+      ])
     } catch (err) {
       let message
       if (err.response?.data?.detail) {
@@ -163,7 +237,7 @@ export default function MockInterviewPage({ interviewKit, targetRole, company })
         {!mode ? (
           <InterviewModeSelect onSelect={setMode} />
         ) : isComplete ? (
-          <SummaryView history={history} company={company} onStartOver={() => navigate('/')} />
+          <SummaryView history={history} company={company} mode={mode} onStartOver={() => navigate('/')} />
         ) : (
           <>
             <InterviewQuestionCard question={currentQuestion} index={currentIndex} total={questions.length} />
@@ -203,6 +277,13 @@ export default function MockInterviewPage({ interviewKit, targetRole, company })
             {evaluation && (
               <>
                 <AnswerEvaluationPanel evaluation={evaluation} />
+                {mode !== 'text' && (
+                  <DeliveryEvaluationPanel
+                    evaluation={evaluation}
+                    speechMetrics={history[history.length - 1]?.speechMetrics}
+                    videoMetrics={history[history.length - 1]?.videoMetrics}
+                  />
+                )}
                 <button
                   type="button"
                   onClick={handleNext}

@@ -25,6 +25,15 @@ def _format_delivery_context(speech_metrics: SpeechMetrics | None, video_metrics
             lines.append(f"- Filler words used: {speech_metrics.filler_word_count} (e.g. {examples})")
         else:
             lines.append("- Filler words used: none detected")
+        if speech_metrics.speech_confidence is not None:
+            lines.append(
+                f"- Recognizer confidence (rough clarity/pronunciation proxy): {speech_metrics.speech_confidence * 100:.0f}%"
+            )
+        if speech_metrics.pause_count is not None:
+            lines.append(
+                f"- Pauses: {speech_metrics.pause_count} "
+                f"(longest {speech_metrics.longest_pause_seconds:.1f}s, total {speech_metrics.total_pause_seconds:.1f}s)"
+            )
     if video_metrics is not None:
         lines.append(f"- Camera-facing (eye contact proxy): {video_metrics.camera_facing_ratio * 100:.0f}% of the answer")
         lines.append(f"- Head-stability (posture proxy): {video_metrics.head_stability_score}/100")
@@ -33,6 +42,12 @@ def _format_delivery_context(speech_metrics: SpeechMetrics | None, video_metrics
                 f"- Face was only detected in {video_metrics.face_presence_ratio * 100:.0f}% of sampled frames "
                 "(candidate may have been out of frame for parts of the answer)"
             )
+        if video_metrics.average_brightness is not None:
+            lines.append(f"- Average lighting brightness: {video_metrics.average_brightness}/100")
+        if video_metrics.background_motion_score is not None:
+            lines.append(f"- Background motion (distraction proxy): {video_metrics.background_motion_score}/100")
+        if video_metrics.camera_positioning is not None:
+            lines.append(f"- Camera positioning: {video_metrics.camera_positioning}")
     return "\n".join(lines)
 
 

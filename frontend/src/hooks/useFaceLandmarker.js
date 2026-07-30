@@ -58,13 +58,24 @@ export function useFaceLandmarker() {
     const result = landmarker.detectForVideo(videoEl, performance.now())
     const landmarks = result.faceLandmarks?.[0]
     if (!landmarks?.length) {
-      return { faceDetected: false, centerOffsetX: 0, centerOffsetY: 0 }
+      return { faceDetected: false, centerOffsetX: 0, centerOffsetY: 0, faceSize: 0 }
     }
 
     // Landmark index 1 is the nose tip in MediaPipe's 478-point face mesh — a stable proxy for
-    // overall head position without needing the full transformation matrix.
+    // overall head position without needing the full transformation matrix. Indices 33/263 are
+    // the outer corners of the right/left eyes — their distance approximates face size in frame,
+    // a proxy for how close/far the candidate is from the camera.
     const noseTip = landmarks[1]
-    return { faceDetected: true, centerOffsetX: noseTip.x - 0.5, centerOffsetY: noseTip.y - 0.5 }
+    const rightEyeOuter = landmarks[33]
+    const leftEyeOuter = landmarks[263]
+    const faceSize = Math.hypot(leftEyeOuter.x - rightEyeOuter.x, leftEyeOuter.y - rightEyeOuter.y)
+
+    return {
+      faceDetected: true,
+      centerOffsetX: noseTip.x - 0.5,
+      centerOffsetY: noseTip.y - 0.5,
+      faceSize,
+    }
   }
 
   return { isReady, loadError, detectFrame }

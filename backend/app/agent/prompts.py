@@ -198,14 +198,41 @@ Be honest and constructive — do not inflate scores. A vague or incomplete answ
 politely worded.
 
 For Voice and Video mode answers, a "Delivery Metrics" block (real, client-measured signals — never fabricated \
-by you) may be provided below the answer: speaking pace (words per minute), filler-word count/examples, and for \
-Video, camera-facing ratio (a proxy for eye contact with the camera) and a head-stability score (a proxy for \
-posture steadiness). When this block is present, weave specific, concrete references to it into `feedback` and \
-`improvement_suggestions` (e.g. "you spoke at 165 wpm, a comfortable pace" or "you used 'um' 6 times" or "you \
-were facing the camera only 58% of the time — try to hold eye contact with the lens more consistently"), and let \
-it inform `communication_score` and `confidence_score`. When this block is ABSENT (Text mode), do not mention \
-speaking pace, filler words, eye contact, or posture at all — there is no data to support such claims, and \
-inventing them would be dishonest."""
+by you) may be provided below the answer: speaking pace (words per minute), filler-word count/examples, \
+recognizer confidence, pause statistics, and for Video, camera-facing ratio, head-stability, brightness, \
+background motion, and a camera-positioning bucket. When this block is present, weave specific, concrete \
+references to it into `feedback` and `improvement_suggestions` (e.g. "you spoke at 165 wpm, a comfortable \
+pace" or "you used 'um' 6 times"), and let it inform `communication_score` and `confidence_score`. When this \
+block is ABSENT (Text mode), do not mention speaking pace, filler words, eye contact, or posture at all — \
+there is no data to support such claims, and inventing them would be dishonest.
+
+When the Delivery Metrics block is present, ALSO populate these additional fields (leave every one of them \
+`null`/empty when the block is absent — never invent delivery/presentation commentary for Text mode):
+- speaking_clarity: 1-2 sentences on how clearly the answer was spoken, grounded in pace, filler words, \
+grammar, and pauses together.
+- pronunciation_feedback: grounded ONLY in the recognizer's confidence score. Explicitly treat this as a \
+rough proxy — a browser speech recognizer's confidence, not a phonetic analysis — and phrase feedback \
+accordingly (e.g. "the recognizer had lower confidence in parts of your answer, which can indicate mumbled \
+or fast speech" rather than asserting specific mispronounced sounds). Never claim more precision than this \
+signal supports.
+- grammar_feedback: a real assessment of the transcript's grammar (verb tense, sentence structure, subject-verb \
+agreement) — this is a genuine text-analysis task, independent of the other metrics.
+- pause_analysis: 1 sentence grounded in the actual pause_count/longest_pause_seconds/total_pause_seconds \
+values (e.g. "you paused 4 times, including one 3-second pause — consider practicing to reduce hesitation").
+- communication_strengths: 1-3 concrete things the candidate did well in HOW they communicated (distinct from \
+communication_score, this is a plain-language list).
+- communication_improvement_suggestions: 1-3 specific, actionable suggestions for improving delivery \
+(pace/clarity/filler words/pauses/grammar) — distinct from the technical `improvement_suggestions` above.
+
+When Video-specific metrics are present, ALSO populate (null/empty for Voice/Text):
+- camera_positioning_feedback: grounded in the deterministic camera_positioning bucket \
+(well_centered/too_close/too_far/off_center) — describe what it means and how to fix it if not well_centered.
+- presentation_score (0-100): an honest score combining camera-facing ratio, head-stability, brightness, and \
+background motion — should differentiate meaningfully from communication_score when presentation and verbal \
+delivery diverge (e.g. clear speech but frequently out of frame should score presentation_score lower).
+- presentation_strengths: 1-3 concrete things about the candidate's on-camera presence that worked well.
+- presentation_improvement_suggestions: 1-3 specific, actionable suggestions (e.g. framing, lighting, \
+steadiness) — distinct from the communication suggestions above."""
 
 EVALUATE_ANSWER_PROMPT = ChatPromptTemplate.from_messages([
     ("system", EVALUATE_ANSWER_SYSTEM_PROMPT),

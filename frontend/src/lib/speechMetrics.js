@@ -5,7 +5,10 @@
 
 const FILLER_WORDS = ['um', 'uh', 'like', 'you know', 'actually', 'basically', 'so', 'right']
 
-export function computeSpeechMetrics(transcript, durationSeconds) {
+// `recognitionMetrics` carries the raw signals useSpeechRecognition's stop() resolves with
+// (avgConfidence, pauseCount, longestPauseSeconds, totalPauseSeconds) — optional so this function
+// still works if only a transcript/duration are available.
+export function computeSpeechMetrics(transcript, durationSeconds, recognitionMetrics = {}) {
   const words = transcript.trim().split(/\s+/).filter(Boolean)
   const minutes = Math.max(durationSeconds / 60, 1 / 60)
   const wordsPerMinute = words.length / minutes
@@ -17,10 +20,19 @@ export function computeSpeechMetrics(transcript, durationSeconds) {
     if (matches) fillerWords.push(...matches.map((m) => m.toLowerCase()))
   }
 
+  const { avgConfidence = null, pauseCount = null, longestPauseSeconds = null, totalPauseSeconds = null } =
+    recognitionMetrics
+
   return {
     words_per_minute: Math.round(wordsPerMinute),
     filler_word_count: fillerWords.length,
     filler_words: fillerWords,
     duration_seconds: Math.round(durationSeconds),
+    ...(avgConfidence !== null && { speech_confidence: Math.round(avgConfidence * 100) / 100 }),
+    ...(pauseCount !== null && {
+      pause_count: pauseCount,
+      longest_pause_seconds: Math.round(longestPauseSeconds * 10) / 10,
+      total_pause_seconds: Math.round(totalPauseSeconds * 10) / 10,
+    }),
   }
 }
