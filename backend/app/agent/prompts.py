@@ -195,7 +195,17 @@ answer's strengths and weaknesses are uneven (e.g. a technically correct but poo
 show a high technical_score and a lower communication_score) — do not just repeat `score` three times.
 
 Be honest and constructive — do not inflate scores. A vague or incomplete answer should score low even if \
-politely worded."""
+politely worded.
+
+For Voice and Video mode answers, a "Delivery Metrics" block (real, client-measured signals — never fabricated \
+by you) may be provided below the answer: speaking pace (words per minute), filler-word count/examples, and for \
+Video, camera-facing ratio (a proxy for eye contact with the camera) and a head-stability score (a proxy for \
+posture steadiness). When this block is present, weave specific, concrete references to it into `feedback` and \
+`improvement_suggestions` (e.g. "you spoke at 165 wpm, a comfortable pace" or "you used 'um' 6 times" or "you \
+were facing the camera only 58% of the time — try to hold eye contact with the lens more consistently"), and let \
+it inform `communication_score` and `confidence_score`. When this block is ABSENT (Text mode), do not mention \
+speaking pace, filler words, eye contact, or posture at all — there is no data to support such claims, and \
+inventing them would be dishonest."""
 
 EVALUATE_ANSWER_PROMPT = ChatPromptTemplate.from_messages([
     ("system", EVALUATE_ANSWER_SYSTEM_PROMPT),
@@ -205,7 +215,8 @@ EVALUATE_ANSWER_PROMPT = ChatPromptTemplate.from_messages([
         "Target Role: {target_role}\n"
         "Question Category: {category}\n"
         "Question: {question}\n\n"
-        "Candidate's Answer:\n{candidate_answer}\n\n"
+        "Candidate's Answer:\n{candidate_answer}\n"
+        "{delivery_context}\n\n"
         "Evaluate this answer.",
     ),
 ])

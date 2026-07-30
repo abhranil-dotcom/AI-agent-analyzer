@@ -70,7 +70,13 @@ async def evaluate_answer(
     """Score a single mock-interview question/answer pair."""
     try:
         evaluation = await agent.evaluate(
-            body.question, body.category, body.target_role, body.company_slug, body.candidate_answer
+            body.question,
+            body.category,
+            body.target_role,
+            body.company_slug,
+            body.candidate_answer,
+            body.speech_metrics,
+            body.video_metrics,
         )
     except Exception as exc:
         logger.exception("Answer evaluation failed: %s", exc)

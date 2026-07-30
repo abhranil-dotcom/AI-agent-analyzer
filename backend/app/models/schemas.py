@@ -173,6 +173,35 @@ class GenerateInterviewKitResponse(BaseModel):
     company_slug: str
 
 
+InterviewMode = Literal["text", "voice", "video"]
+
+
+class SpeechMetrics(BaseModel):
+    """Delivery metrics computed client-side from the browser's Speech Recognition timing/
+    transcript for Voice/Video mode answers. Optional — absent entirely for Text mode."""
+
+    words_per_minute: float = Field(..., ge=0)
+    filler_word_count: int = Field(..., ge=0)
+    filler_words: list[str] = Field(default_factory=list, description="The actual filler words detected, e.g. ['um', 'like']")
+    duration_seconds: float = Field(..., ge=0)
+
+
+class VideoMetrics(BaseModel):
+    """Presentation metrics computed client-side from periodic in-browser face-landmark sampling
+    during a Video mode answer. Deliberately scoped to what a face-only model can honestly
+    measure — no shoulder/body posture, no true gaze tracking, just camera-facing/steadiness
+    proxies. Optional — absent entirely for Text/Voice mode."""
+
+    face_presence_ratio: float = Field(..., ge=0, le=1, description="Fraction of sampled frames a face was detected at all")
+    camera_facing_ratio: float = Field(
+        ..., ge=0, le=1, description="Fraction of sampled frames the face was roughly centered/frontal — proxy for eye contact"
+    )
+    head_stability_score: int = Field(
+        ..., ge=0, le=100, description="Derived from head yaw/pitch/roll variance — proxy for posture steadiness"
+    )
+    sample_count: int = Field(..., ge=0)
+
+
 class EvaluateAnswerRequest(BaseModel):
     """Request body for the /api/interview/evaluate endpoint."""
 
@@ -181,6 +210,9 @@ class EvaluateAnswerRequest(BaseModel):
     target_role: str
     company_slug: str
     candidate_answer: str = Field(..., min_length=1)
+    interview_mode: InterviewMode = "text"
+    speech_metrics: SpeechMetrics | None = None
+    video_metrics: VideoMetrics | None = None
 
 
 class AnswerEvaluation(BaseModel):

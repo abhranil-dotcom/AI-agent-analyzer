@@ -1,3 +1,17 @@
+export const INTERVIEW_MODES = [
+  { id: 'text', label: 'Text Interview', description: 'Type your answers at your own pace.' },
+  {
+    id: 'voice',
+    label: 'Voice Interview',
+    description: 'The AI asks each question aloud — answer using only your microphone.',
+  },
+  {
+    id: 'video',
+    label: 'Video Interview',
+    description: 'Voice interview plus webcam-based presentation feedback (eye contact, steadiness).',
+  },
+]
+
 export const QUESTION_COUNTS = { hr: 5, resume: 5, technical: 5, coding: 5 }
 
 // Warm-up (HR) -> personalized (resume) -> domain depth (technical) -> hardest (coding),

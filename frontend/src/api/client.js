@@ -114,13 +114,23 @@ export async function generateInterviewKit(companySlug, targetRole, extractedTex
   return response.data
 }
 
-export async function evaluateAnswer(question, category, targetRole, companySlug, candidateAnswer) {
+export async function evaluateAnswer(
+  question,
+  category,
+  targetRole,
+  companySlug,
+  candidateAnswer,
+  { interviewMode, speechMetrics, videoMetrics } = {},
+) {
   const response = await apiClient.post('/api/interview/evaluate', {
     question,
     category,
     target_role: targetRole,
     company_slug: companySlug,
     candidate_answer: candidateAnswer,
+    ...(interviewMode && { interview_mode: interviewMode }),
+    ...(speechMetrics && { speech_metrics: speechMetrics }),
+    ...(videoMetrics && { video_metrics: videoMetrics }),
   })
   return response.data
 }
