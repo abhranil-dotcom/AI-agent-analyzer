@@ -13,21 +13,6 @@ Cover why most objects die young and how generational collectors exploit that fo
 each?
 Cover shared implementation vs pure contract, and multiple-inheritance implications.
 
-## System Design (mainly SDE II+)
-
-### Design a scalable file storage service (conceptually similar to OneDrive).
-Cover metadata storage, chunking/deduplication, and consistency trade-offs for concurrent edits.
-
-### Design a real-time chat/collaboration feature (similar to Microsoft Teams).
-Cover WebSocket/long-polling trade-offs, message ordering, and presence-indicator design.
-
-### How would you design Azure Blob Storage at a high level?
-Cover partitioning, replication strategy, and durability guarantees.
-
-### Explain the trade-offs between strong and eventual consistency in a distributed database.
-Cover latency/availability implications and give an example of when eventual consistency is
-acceptable.
-
 ## Cloud / Azure (for cloud-track candidates)
 
 ### What is the difference between Azure Functions and Azure App Service?

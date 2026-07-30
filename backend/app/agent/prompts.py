@@ -101,21 +101,37 @@ technical_questions reference specific tools the candidate actually used)
 weaknesses, and missing_skills — use this to calibrate preparation_tips and to make technical_questions \
 probe the candidate's actual weak spots and missing skills, not just generic role topics)
 
+The retrieved Company Knowledge may include, alongside the core categories, optional style categories \
+that only some companies define — treat these as strong signals for HOW to weight the four fixed question \
+categories below, never as new categories of their own:
+  - `interview_style`: explicit guidance on how this company balances HR/technical/coding and its overall bar.
+  - `system_design`: present for companies with a real system-design interview bar (e.g. Microsoft) — when \
+present, fold 1-2 system-design-flavored questions into technical_questions for mid/senior-leaning roles.
+  - `leadership_principles`: present for companies whose behavioral rounds are explicitly mapped to named \
+leadership values (e.g. Amazon) — when present, frame hr_questions as behavioral questions mapped to those \
+named values, expecting STAR-format (Situation, Task, Action, Result) answers.
+  - `oa_pattern`: present for companies with a distinct online-assessment/aptitude round before interviews \
+(e.g. TCS) — when present, let it inform interview_rounds/preparation_tips and calibrate 1-2 of the \
+coding_questions toward that company's OA-style difficulty in addition to normal interview-round coding.
+A category being absent for a company is normal — fall back to the core categories alone in that case.
+
 Guidelines:
 - company_overview, interview_process, interview_rounds, and preparation_tips must be grounded in the \
 retrieved Company Knowledge — do not skip or ignore it, and do not fabricate details it doesn't support. \
 preparation_tips should also account for the candidate's specific weaknesses and missing_skills from the \
 ATS Analysis, not just generic company advice.
 - hr_questions: generate 5 representative HR/behavioral questions in the style shown by the retrieved \
-Company Knowledge for this company.
+Company Knowledge for this company (see `leadership_principles` guidance above where applicable).
 - technical_questions: generate role-specific technical questions for the Selected Role. Where the \
 Resume mentions specific technologies (e.g. FastAPI, LangChain, Azure OpenAI, React, or any other named \
 tool/framework), include questions about those specific technologies, not just generic role-standard \
 questions. Where the ATS Analysis lists missing_skills or weaknesses relevant to this role, include at \
-least one question probing that gap.
+least one question probing that gap. Fold in system-design flavor where the retrieved Company Knowledge \
+supports it (see `system_design` guidance above).
 - coding_questions: generate coding questions whose difficulty matches what the retrieved Company \
 Knowledge implies about this company's typical coding bar (e.g. Easy/Medium for most IT-services \
-companies, Medium/Hard for big tech) — set the `difficulty` field on each accordingly.
+companies, Medium/Hard and DSA-heavy for big tech) — set the `difficulty` field on each accordingly, and \
+factor in `oa_pattern` guidance above where applicable.
 - resume_questions: generate questions ONLY by analyzing the candidate's own Resume — their specific \
 projects, skills, and technologies — asking them to justify choices and explain how things work (e.g. "Why \
 did you choose X over Y?", "Explain how your Z project's architecture works"). Use the retrieved \
@@ -124,7 +140,8 @@ probing resume depth (e.g. how deep they dig, what kind of follow-ups they favor
 - Every question needs a unique `id` (e.g. "hr-1".."hr-5", "resume-1".."resume-5", "technical-1".."technical-5", \
 "coding-1".."coding-5") and the correct `category`.
 
-Generate {question_counts} in total. Never hardcode or reuse questions verbatim across different \
+Generate {question_counts} in total — the category names and counts above are fixed regardless of which \
+optional style categories are present. Never hardcode or reuse questions verbatim across different \
 candidates — always tailor to the specific combination of company knowledge, role, resume, and ATS \
 analysis provided."""
 

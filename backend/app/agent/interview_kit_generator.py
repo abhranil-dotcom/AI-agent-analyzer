@@ -7,20 +7,9 @@ from app.agent.prompts import INTERVIEW_KIT_PROMPT, QUESTION_COUNTS_PROMPT_TEXT
 from app.core.config import Settings, get_settings
 from app.data.companies.registry import get_company
 from app.models.schemas import InterviewKit, ResumeAnalysis
-from app.services.vector_store import get_company_retriever
+from app.services.rag_interview_service import retrieve_interview_context
 
 logger = logging.getLogger(__name__)
-
-_RETRIEVAL_CATEGORIES = (
-    "company_overview",
-    "interview_process",
-    "hr_questions",
-    "technical_questions",
-    "coding_patterns",
-    "preparation_tips",
-    "resume_based_questions",
-    "interview_experiences",
-)
 
 
 class InterviewKitGeneratorAgent:
@@ -44,17 +33,6 @@ class InterviewKitGeneratorAgent:
 
         logger.info("InterviewKitGeneratorAgent initialised (deployment=%s)", settings.azure_openai_chat_deployment)
 
-    async def _retrieve_context(self, company_slug: str, target_role: str) -> str:
-        """Retrieve per-category so no single category is starved by a global top-k search."""
-        blocks: list[str] = []
-        for category in _RETRIEVAL_CATEGORIES:
-            retriever = get_company_retriever(company_slug, k=3, category=category)
-            docs = await retriever.ainvoke(f"{target_role} interview preparation")
-            if docs:
-                joined = "\n---\n".join(d.page_content for d in docs)
-                blocks.append(f"### {category}\n{joined}")
-        return "\n\n".join(blocks)
-
     async def generate(
         self, company_slug: str, target_role: str, resume_text: str, analysis: ResumeAnalysis
     ) -> InterviewKit:
@@ -63,7 +41,7 @@ class InterviewKitGeneratorAgent:
             raise ValueError(f"Unsupported company slug: {company_slug}")
 
         logger.info("Generating interview kit for %s / role '%s'", company_slug, target_role)
-        retrieved_context = await self._retrieve_context(company_slug, target_role)
+        retrieved_context = await retrieve_interview_context(company_slug, target_role)
 
         kit: InterviewKit = await self._chain.ainvoke(
             {
