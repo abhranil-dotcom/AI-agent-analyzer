@@ -5,8 +5,12 @@
 // framed webcam), callers simply get `poseDetected: false` and should omit posture entirely
 // rather than fabricate a score.
 
-const TILT_WARNING_DEGREES = 12 // shoulder-line tilt beyond this reads as "leaning"
-const OFFSET_WARNING = 0.12 // normalized head-over-shoulders horizontal misalignment
+// Deliberately lenient — BlazePose's per-frame shoulder estimate jitters even when someone is
+// sitting normally upright, and everyday head turns/webcam angles add a few more degrees on top.
+// These thresholds are tuned to only fire for a clearly significant lean/slouch, not normal
+// posture or ordinary movement while talking.
+const TILT_WARNING_DEGREES = 25 // shoulder-line tilt beyond this reads as "leaning"
+const OFFSET_WARNING = 0.22 // normalized head-over-shoulders horizontal misalignment
 
 // `sample` is usePoseLandmarker's detectFrame() result: { poseDetected, shoulderTiltDegrees, headShoulderOffsetX }.
 export function computePostureScore(sample) {
