@@ -16,7 +16,12 @@ async function loadPoseLandmarker() {
       const { PoseLandmarker, FilesetResolver } = await import('@mediapipe/tasks-vision')
       const vision = await FilesetResolver.forVisionTasks(WASM_BASE_URL)
       return PoseLandmarker.createFromOptions(vision, {
-        baseOptions: { modelAssetPath: MODEL_ASSET_URL, delegate: 'GPU' },
+        // CPU delegate deliberately, not GPU: running two concurrent GPU-delegate MediaPipe tasks
+        // (this plus FaceLandmarker) at mount time competes for the same WebGL context and can
+        // fail to initialize on some browsers/GPUs — that's what was surfacing as "Presentation
+        // analysis couldn't load". FaceLandmarker keeps GPU (it needs the tightest per-tick
+        // latency); posture doesn't need to win that race.
+        baseOptions: { modelAssetPath: MODEL_ASSET_URL, delegate: 'CPU' },
         runningMode: 'VIDEO',
         numPoses: 1,
         // Segmentation masks are the expensive part of pose inference and unused here — only
