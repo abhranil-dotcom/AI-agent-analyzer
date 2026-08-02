@@ -34,6 +34,8 @@ def _format_delivery_context(speech_metrics: SpeechMetrics | None, video_metrics
                 f"- Pauses: {speech_metrics.pause_count} "
                 f"(longest {speech_metrics.longest_pause_seconds:.1f}s, total {speech_metrics.total_pause_seconds:.1f}s)"
             )
+        if speech_metrics.fluency_score is not None:
+            lines.append(f"- Fluency score (heuristic, from pace/fillers/pauses): {speech_metrics.fluency_score}/100")
     if video_metrics is not None:
         lines.append(f"- Camera-facing (eye contact proxy): {video_metrics.camera_facing_ratio * 100:.0f}% of the answer")
         lines.append(f"- Head-stability (posture proxy): {video_metrics.head_stability_score}/100")
@@ -48,6 +50,14 @@ def _format_delivery_context(speech_metrics: SpeechMetrics | None, video_metrics
             lines.append(f"- Background motion (distraction proxy): {video_metrics.background_motion_score}/100")
         if video_metrics.camera_positioning is not None:
             lines.append(f"- Camera positioning: {video_metrics.camera_positioning}")
+        if video_metrics.posture_score is not None:
+            lines.append(f"- Posture score (shoulder-tilt/head-alignment proxy): {video_metrics.posture_score}/100")
+        if video_metrics.out_of_frame_events:
+            lines.append(f"- Drifted out of frame {video_metrics.out_of_frame_events} time(s) during the answer")
+        if video_metrics.multiple_person_events:
+            lines.append(f"- More than one person was visible {video_metrics.multiple_person_events} time(s) during the answer")
+        if video_metrics.phone_use_events:
+            lines.append(f"- Possible phone usage detected {video_metrics.phone_use_events} time(s) during the answer")
     return "\n".join(lines)
 
 

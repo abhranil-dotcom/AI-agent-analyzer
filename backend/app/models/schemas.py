@@ -190,6 +190,9 @@ class SpeechMetrics(BaseModel):
     pause_count: int | None = Field(None, ge=0, description="Number of noticeable pauses between recognized speech segments")
     longest_pause_seconds: float | None = Field(None, ge=0)
     total_pause_seconds: float | None = Field(None, ge=0)
+    fluency_score: int | None = Field(
+        None, ge=0, le=100, description="Deterministic client-computed proxy from filler-word ratio, pace-band deviation, and pause ratio — never an LLM guess"
+    )
 
 
 CameraPositioning = Literal["well_centered", "too_close", "too_far", "off_center"]
@@ -216,6 +219,22 @@ class VideoMetrics(BaseModel):
     )
     camera_positioning: CameraPositioning | None = Field(
         None, description="Deterministic bucket from face size/centering — not an LLM guess"
+    )
+    posture_score: int | None = Field(
+        None, ge=0, le=100,
+        description="Deterministic proxy from shoulder-tilt angle and head-over-shoulders alignment (MediaPipe Pose landmarks) — only present when shoulders were visible in frame, never fabricated when unmeasured",
+    )
+    posture_warning_events: int | None = Field(
+        None, ge=0, description="Count of distinct sustained-poor-posture episodes during the answer (rising-edge counted, not raw ticks)"
+    )
+    out_of_frame_events: int | None = Field(
+        None, ge=0, description="Count of distinct episodes where the candidate drifted off-center/out of frame during the answer"
+    )
+    multiple_person_events: int | None = Field(
+        None, ge=0, description="Count of distinct episodes where more than one face was detected in frame"
+    )
+    phone_use_events: int | None = Field(
+        None, ge=0, description="Count of distinct episodes where a cell phone was detected in frame — an observable coaching signal, never a certainty claim"
     )
 
 
@@ -256,6 +275,7 @@ class AnswerEvaluation(BaseModel):
     )
     grammar_feedback: str | None = Field(None, description="Grammar assessment of the spoken answer's transcript")
     pause_analysis: str | None = Field(None, description="Assessment of pause count/length, grounded in real pause timing data")
+    fluency_feedback: str | None = Field(None, description="Fluency assessment grounded in the deterministic fluency_score plus pace/filler/pause data")
     communication_strengths: list[str] = Field(default_factory=list)
     communication_improvement_suggestions: list[str] = Field(default_factory=list)
 
@@ -264,6 +284,15 @@ class AnswerEvaluation(BaseModel):
     presentation_score: int | None = Field(None, ge=0, le=100, description="Video-only: camera engagement + steadiness + lighting/background, feeds the derived Communication & Presentation Score")
     presentation_strengths: list[str] = Field(default_factory=list)
     presentation_improvement_suggestions: list[str] = Field(default_factory=list)
+    posture_feedback: str | None = Field(
+        None,
+        description=(
+            "Feedback grounded ONLY in the deterministic posture_score (shoulder-tilt/head-alignment proxy). "
+            "Strictly limited to camera/interview-presentation coaching (e.g. sitting more upright, facing the "
+            "camera squarely) — must NEVER infer personality, confidence-as-a-trait, honesty, or any other "
+            "psychological/character judgment from posture. Null when posture wasn't measured."
+        ),
+    )
 
 
 class EvaluateAnswerResponse(BaseModel):

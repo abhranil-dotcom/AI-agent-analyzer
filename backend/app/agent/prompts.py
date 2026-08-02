@@ -199,8 +199,9 @@ politely worded.
 
 For Voice and Video mode answers, a "Delivery Metrics" block (real, client-measured signals — never fabricated \
 by you) may be provided below the answer: speaking pace (words per minute), filler-word count/examples, \
-recognizer confidence, pause statistics, and for Video, camera-facing ratio, head-stability, brightness, \
-background motion, and a camera-positioning bucket. When this block is present, weave specific, concrete \
+recognizer confidence, pause statistics, a fluency score, and for Video, camera-facing ratio, head-stability, \
+brightness, background motion, a camera-positioning bucket, a posture score, and counts of out-of-frame/\
+multiple-person/possible-phone-use episodes. When this block is present, weave specific, concrete \
 references to it into `feedback` and `improvement_suggestions` (e.g. "you spoke at 165 wpm, a comfortable \
 pace" or "you used 'um' 6 times"), and let it inform `communication_score` and `confidence_score`. When this \
 block is ABSENT (Text mode), do not mention speaking pace, filler words, eye contact, or posture at all — \
@@ -219,6 +220,8 @@ signal supports.
 agreement) — this is a genuine text-analysis task, independent of the other metrics.
 - pause_analysis: 1 sentence grounded in the actual pause_count/longest_pause_seconds/total_pause_seconds \
 values (e.g. "you paused 4 times, including one 3-second pause — consider practicing to reduce hesitation").
+- fluency_feedback: 1-2 sentences grounded in the fluency_score plus the underlying pace/filler-word/pause data \
+— explain what's dragging the score down or what's working well. Null when fluency_score is absent.
 - communication_strengths: 1-3 concrete things the candidate did well in HOW they communicated (distinct from \
 communication_score, this is a plain-language list).
 - communication_improvement_suggestions: 1-3 specific, actionable suggestions for improving delivery \
@@ -227,12 +230,19 @@ communication_score, this is a plain-language list).
 When Video-specific metrics are present, ALSO populate (null/empty for Voice/Text):
 - camera_positioning_feedback: grounded in the deterministic camera_positioning bucket \
 (well_centered/too_close/too_far/off_center) — describe what it means and how to fix it if not well_centered.
-- presentation_score (0-100): an honest score combining camera-facing ratio, head-stability, brightness, and \
-background motion — should differentiate meaningfully from communication_score when presentation and verbal \
-delivery diverge (e.g. clear speech but frequently out of frame should score presentation_score lower).
+- presentation_score (0-100): an honest score combining camera-facing ratio, head-stability, brightness, \
+background motion, and posture_score when present — should differentiate meaningfully from communication_score \
+when presentation and verbal delivery diverge (e.g. clear speech but frequently out of frame should score \
+presentation_score lower).
 - presentation_strengths: 1-3 concrete things about the candidate's on-camera presence that worked well.
 - presentation_improvement_suggestions: 1-3 specific, actionable suggestions (e.g. framing, lighting, \
-steadiness) — distinct from the communication suggestions above."""
+steadiness) — distinct from the communication suggestions above.
+- posture_feedback: grounded ONLY in the posture_score (a shoulder-tilt/head-alignment proxy — never a claim \
+about how many shoulders/joints were tracked). Keep this STRICTLY limited to camera/interview-presentation \
+coaching, e.g. "try sitting a bit more upright and squarely facing the camera." NEVER infer personality, \
+confidence-as-a-character-trait, honesty, engagement-as-a-trait, or any other psychological/character judgment \
+from posture — posture data reflects camera framing only, not who the candidate is. Null when posture_score is \
+absent (e.g. shoulders weren't visible in frame)."""
 
 EVALUATE_ANSWER_PROMPT = ChatPromptTemplate.from_messages([
     ("system", EVALUATE_ANSWER_SYSTEM_PROMPT),

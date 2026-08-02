@@ -1,66 +1,7 @@
-import { Camera, Clock, Eye, Gauge, Lightbulb, Mic2, Sparkles, SpellCheck } from 'lucide-react'
+import { Activity, Camera, Clock, Eye, Gauge, Mic2, SpellCheck } from 'lucide-react'
 import ScoreRing, { COLOR_STYLES, getScoreTier } from './ScoreRing.jsx'
+import { CAMERA_POSITIONING_LABELS, SectionHeader, StatTile, StrengthsImprovements } from './ReportPrimitives.jsx'
 import { communicationPresentationScore } from '../lib/scoreAggregation.js'
-
-function SectionHeader({ icon: Icon, title, iconClass = 'text-slate-500 dark:text-slate-400' }) {
-  return (
-    <div className="flex items-center gap-2">
-      <Icon className={`h-4 w-4 shrink-0 ${iconClass}`} />
-      <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">{title}</h3>
-    </div>
-  )
-}
-
-function StatTile({ label, value }) {
-  if (value === null || value === undefined) return null
-  return (
-    <div className="rounded-xl border border-slate-200/50 p-3 text-center dark:border-slate-700/30">
-      <p className="text-lg font-black text-slate-900 dark:text-slate-100">{value}</p>
-      <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">{label}</p>
-    </div>
-  )
-}
-
-function StrengthsImprovements({ strengths, improvements }) {
-  if (!strengths?.length && !improvements?.length) return null
-  return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      {strengths?.length > 0 && (
-        <div>
-          <SectionHeader icon={Sparkles} title="Strengths" />
-          <ul className="mt-3 space-y-2">
-            {strengths.map((item, i) => (
-              <li key={i} className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500/70" />
-                {item}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-      {improvements?.length > 0 && (
-        <div>
-          <SectionHeader icon={Lightbulb} title="Improvements" iconClass="text-brand-600 dark:text-brand-400" />
-          <ul className="mt-3 space-y-2">
-            {improvements.map((item, i) => (
-              <li key={i} className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-500/60" />
-                {item}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </div>
-  )
-}
-
-const CAMERA_POSITIONING_LABELS = {
-  well_centered: 'Well centered',
-  too_close: 'Too close to camera',
-  too_far: 'Too far from camera',
-  off_center: 'Off-center framing',
-}
 
 // Voice/Video-only report card, rendered as an additional card alongside (below) the existing
 // AnswerEvaluationPanel — never a replacement for it. `evaluation` carries the LLM's delivery-
@@ -96,6 +37,7 @@ export default function DeliveryEvaluationPanel({ evaluation, speechMetrics, vid
               label="Clarity conf."
               value={speechMetrics.speech_confidence != null ? `${Math.round(speechMetrics.speech_confidence * 100)}%` : null}
             />
+            <StatTile label="Fluency" value={speechMetrics.fluency_score} />
           </div>
         </div>
       )}
@@ -127,6 +69,12 @@ export default function DeliveryEvaluationPanel({ evaluation, speechMetrics, vid
             <p className="mt-2 text-sm leading-relaxed text-slate-700 dark:text-slate-300">{evaluation.pause_analysis}</p>
           </div>
         )}
+        {evaluation.fluency_feedback && (
+          <div>
+            <SectionHeader icon={Activity} title="Fluency" />
+            <p className="mt-2 text-sm leading-relaxed text-slate-700 dark:text-slate-300">{evaluation.fluency_feedback}</p>
+          </div>
+        )}
       </div>
 
       <StrengthsImprovements
@@ -150,6 +98,7 @@ export default function DeliveryEvaluationPanel({ evaluation, speechMetrics, vid
                 label="Camera positioning"
                 value={videoMetrics.camera_positioning ? CAMERA_POSITIONING_LABELS[videoMetrics.camera_positioning] : null}
               />
+              <StatTile label="Posture" value={videoMetrics.posture_score} />
             </div>
           </div>
 
@@ -160,6 +109,12 @@ export default function DeliveryEvaluationPanel({ evaluation, speechMetrics, vid
                 <p className="mt-2 text-sm leading-relaxed text-slate-700 dark:text-slate-300">
                   {evaluation.camera_positioning_feedback}
                 </p>
+              </div>
+            )}
+            {evaluation.posture_feedback && (
+              <div>
+                <SectionHeader icon={Activity} title="Posture" />
+                <p className="mt-2 text-sm leading-relaxed text-slate-700 dark:text-slate-300">{evaluation.posture_feedback}</p>
               </div>
             )}
           </div>

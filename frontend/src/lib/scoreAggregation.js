@@ -21,3 +21,25 @@ export function averageCommunicationPresentationScore(evaluations) {
   const scores = evaluations.map(communicationPresentationScore)
   return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
 }
+
+// Generic helpers for aggregating a field across an array of speech/video metrics objects (as
+// opposed to `averageScore`, which reads from `AnswerEvaluation` objects) — used by
+// InterviewPerformanceReport.jsx to build the session-level Voice & Communication / Video &
+// Presentation stat tiles from real per-turn measurements, never from LLM text.
+//
+// Deliberately NOT rounded here: some fields are already 0-100 (fluency_score, posture_score),
+// others are 0-1 fractions destined to be multiplied by 100 for display (speech_confidence,
+// face_presence_ratio, camera_facing_ratio) — rounding at this layer would collapse any fraction
+// below 0.5 to 0 and anything else to 1 before that multiplication. Callers round after any
+// necessary scaling.
+export function averageMetricField(metricsArray, field) {
+  const values = metricsArray.map((m) => m?.[field]).filter((v) => typeof v === 'number')
+  if (values.length === 0) return null
+  return values.reduce((a, b) => a + b, 0) / values.length
+}
+
+export function sumMetricField(metricsArray, field) {
+  const values = metricsArray.map((m) => m?.[field]).filter((v) => typeof v === 'number')
+  if (values.length === 0) return null
+  return values.reduce((a, b) => a + b, 0)
+}

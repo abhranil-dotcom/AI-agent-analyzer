@@ -6,10 +6,12 @@
 // and how much the background moves — not true gaze tracking, body posture, or an aesthetic
 // judgment of the background.
 
-const CENTER_TOLERANCE = 0.15 // normalized nose-tip offset from frame center still counts as "facing camera"
+// Exported so VideoAnswerInput.jsx's live monitor loop can apply these same two thresholds
+// per-tick (for the "looking away" / "out of frame" banners) instead of only at session end.
+export const CENTER_TOLERANCE = 0.15 // normalized nose-tip offset from frame center still counts as "facing camera"
 const TOO_CLOSE_FACE_SIZE = 0.22 // normalized inter-eye distance thresholds — approximate, not calibrated per-device
 const TOO_FAR_FACE_SIZE = 0.06
-const OFF_CENTER_TOLERANCE = 0.2
+export const OFF_CENTER_TOLERANCE = 0.2
 
 function average(values) {
   return values.reduce((a, b) => a + b, 0) / values.length
@@ -36,7 +38,10 @@ export function createVideoMetricsAccumulator() {
       samples.push(detection)
     },
 
-    finalize() {
+    // `episodeCounts` carries rising-edge episode totals accumulated by the caller (VideoAnswerInput's
+    // refs) for signals that are inherently about sustained state over time — posture warnings,
+    // out-of-frame drift, multiple people, possible phone use — rather than a per-sample average.
+    finalize(episodeCounts = {}) {
       const sampleCount = samples.length
       if (sampleCount === 0) {
         return { face_presence_ratio: 0, camera_facing_ratio: 0, head_stability_score: 0, sample_count: 0 }
@@ -76,6 +81,15 @@ export function createVideoMetricsAccumulator() {
 
       const positioning = classifyCameraPositioning(detected)
       if (positioning) result.camera_positioning = positioning
+
+      const postureScores = samples.map((s) => s.postureScore).filter((v) => typeof v === 'number')
+      if (postureScores.length > 0) result.posture_score = Math.round(average(postureScores))
+
+      const { postureWarning, outOfFrame, multiplePeople, phoneUse } = episodeCounts
+      if (typeof postureWarning === 'number') result.posture_warning_events = postureWarning
+      if (typeof outOfFrame === 'number') result.out_of_frame_events = outOfFrame
+      if (typeof multiplePeople === 'number') result.multiple_person_events = multiplePeople
+      if (typeof phoneUse === 'number') result.phone_use_events = phoneUse
 
       return result
     },

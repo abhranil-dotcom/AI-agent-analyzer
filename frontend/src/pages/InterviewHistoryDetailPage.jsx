@@ -5,6 +5,7 @@ import { fetchInterviewHistoryDetail } from '../api/client.js'
 import AnswerEvaluationPanel from '../components/AnswerEvaluationPanel.jsx'
 import DeliveryEvaluationPanel from '../components/DeliveryEvaluationPanel.jsx'
 import InterviewKitSkeleton from '../components/InterviewKitSkeleton.jsx'
+import InterviewPerformanceReport from '../components/InterviewPerformanceReport.jsx'
 import ScoreRing, { COLOR_STYLES, getScoreTier } from '../components/ScoreRing.jsx'
 
 const STRENGTH_THRESHOLD = 80
@@ -53,6 +54,14 @@ export default function InterviewHistoryDetailPage() {
 
       {detail && (() => {
         const overview = computeSessionOverview(detail.qa)
+        // No `mode` is persisted on the saved session (see db/models.py's InterviewHistory) — it's
+        // derivable from which per-turn metrics were saved, same discipline as the existing
+        // `entry.evaluation.speaking_clarity` presence check below.
+        const mode = detail.qa.some((e) => e.video_metrics)
+          ? 'video'
+          : detail.qa.some((e) => e.speech_metrics)
+            ? 'voice'
+            : 'text'
         return (
         <div className="flex flex-col gap-6">
           <div className="mb-2 text-center">
@@ -137,6 +146,17 @@ export default function InterviewHistoryDetailPage() {
                 )}
               </div>
             </section>
+          )}
+
+          {mode !== 'text' && (
+            <InterviewPerformanceReport
+              mode={mode}
+              entries={detail.qa.map((entry) => ({
+                evaluation: entry.evaluation,
+                speechMetrics: entry.speech_metrics,
+                videoMetrics: entry.video_metrics,
+              }))}
+            />
           )}
 
           <div className="flex flex-col gap-6">

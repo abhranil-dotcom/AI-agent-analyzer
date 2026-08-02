@@ -18,7 +18,9 @@ async function loadFaceLandmarker() {
       return FaceLandmarker.createFromOptions(vision, {
         baseOptions: { modelAssetPath: MODEL_ASSET_URL, delegate: 'GPU' },
         runningMode: 'VIDEO',
-        numFaces: 1,
+        // 2, not 1: lets us cheaply detect "more than one person in frame" by reusing this
+        // already-every-tick model instead of running a second detector — see faceCount below.
+        numFaces: 2,
       })
     })()
   }
@@ -27,9 +29,9 @@ async function loadFaceLandmarker() {
 
 // Thin wrapper around MediaPipe's Face Landmarker for Video mode's presentation-signal sampling.
 // Runs fully in-browser (WASM) — no webcam frame ever leaves the device. Deliberately exposes
-// only the nose-tip position (normalized 0-1 within the frame), not full landmark/blendshape
-// data — lib/videoMetrics.js turns a stream of these samples into honest camera-facing/
-// steadiness proxies.
+// only the primary face's nose-tip position (normalized 0-1 within the frame) plus a face count,
+// not full landmark/blendshape data — lib/videoMetrics.js turns a stream of these samples into
+// honest camera-facing/steadiness proxies, and the face count feeds multiple-person detection.
 export function useFaceLandmarker() {
   const [isReady, setIsReady] = useState(false)
   const [loadError, setLoadError] = useState(null)
@@ -56,9 +58,10 @@ export function useFaceLandmarker() {
     if (!landmarker || !videoEl || videoEl.readyState < 2) return null
 
     const result = landmarker.detectForVideo(videoEl, performance.now())
+    const faceCount = result.faceLandmarks?.length ?? 0
     const landmarks = result.faceLandmarks?.[0]
     if (!landmarks?.length) {
-      return { faceDetected: false, centerOffsetX: 0, centerOffsetY: 0, faceSize: 0 }
+      return { faceDetected: false, centerOffsetX: 0, centerOffsetY: 0, faceSize: 0, faceCount: 0 }
     }
 
     // Landmark index 1 is the nose tip in MediaPipe's 478-point face mesh — a stable proxy for
@@ -75,6 +78,7 @@ export function useFaceLandmarker() {
       centerOffsetX: noseTip.x - 0.5,
       centerOffsetY: noseTip.y - 0.5,
       faceSize,
+      faceCount,
     }
   }
 

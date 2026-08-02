@@ -4,6 +4,7 @@ import { AlertTriangle, ArrowRight, RotateCcw, Trophy } from 'lucide-react'
 import AnswerEvaluationPanel from '../components/AnswerEvaluationPanel.jsx'
 import DeliveryEvaluationPanel from '../components/DeliveryEvaluationPanel.jsx'
 import InterviewModeSelect from '../components/InterviewModeSelect.jsx'
+import InterviewPerformanceReport from '../components/InterviewPerformanceReport.jsx'
 import InterviewQuestionCard from '../components/InterviewQuestionCard.jsx'
 import TextAnswerInput from '../components/TextAnswerInput.jsx'
 import VideoAnswerInput from '../components/VideoAnswerInput.jsx'
@@ -13,7 +14,6 @@ import Stepper from '../components/Stepper.jsx'
 import { evaluateAnswer, saveInterviewHistory } from '../api/client.js'
 import { useToast } from '../context/ToastContext.jsx'
 import { CATEGORY_LABELS, flattenQuestions } from '../constants/interview.js'
-import { averageCommunicationPresentationScore, averageScore } from '../lib/scoreAggregation.js'
 
 function SummaryView({ history, company, mode, onStartOver }) {
   const average = Math.round(history.reduce((sum, h) => sum + h.evaluation.score, 0) / history.length)
@@ -27,96 +27,44 @@ function SummaryView({ history, company, mode, onStartOver }) {
     byCategory[cat].push(h.evaluation.score)
   }
 
-  const evaluations = history.map((h) => h.evaluation)
-  const technicalAvg = mode !== 'text' ? averageScore(evaluations, 'technical_score') : null
-  const commsAvg = mode !== 'text' ? averageCommunicationPresentationScore(evaluations) : null
-  const speechSamples = history.map((h) => h.speechMetrics).filter(Boolean)
-  const videoSamples = history.map((h) => h.videoMetrics).filter(Boolean)
-
   return (
-    <section className="rounded-2xl border border-slate-200/60 bg-white/90 p-6 shadow-xl backdrop-blur-xl sm:p-8 dark:border-white/[0.08] dark:bg-slate-900/80">
-      <div className="mb-6 flex items-center gap-2">
-        <Trophy className="h-5 w-5 shrink-0 text-brand-600 dark:text-brand-400" />
-        <h2 className="text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100">
-          Mock interview complete — {company.display_name}
-        </h2>
-      </div>
-
-      <div className={`mb-6 flex items-center gap-5 rounded-xl border px-5 py-4 ${s.wrap}`}>
-        <ScoreRing score={average} ringClass={s.ring} />
-        <div>
-          <p className={`text-xl font-bold ${s.label}`}>{tier.label}</p>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Average Score Across {history.length} Questions</p>
+    <div className="flex flex-col gap-6">
+      <section className="rounded-2xl border border-slate-200/60 bg-white/90 p-6 shadow-xl backdrop-blur-xl sm:p-8 dark:border-white/[0.08] dark:bg-slate-900/80">
+        <div className="mb-6 flex items-center gap-2">
+          <Trophy className="h-5 w-5 shrink-0 text-brand-600 dark:text-brand-400" />
+          <h2 className="text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100">
+            Mock interview complete — {company.display_name}
+          </h2>
         </div>
-      </div>
 
-      {mode !== 'text' && technicalAvg !== null && commsAvg !== null && (
-        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {[
-            { label: 'Technical Score', score: technicalAvg },
-            { label: mode === 'video' ? 'Communication & Presentation Score' : 'Communication Score', score: commsAvg },
-          ].map(({ label, score }) => {
-            const t = getScoreTier(score)
-            const c = COLOR_STYLES[t.color]
+        <div className={`mb-6 flex items-center gap-5 rounded-xl border px-5 py-4 ${s.wrap}`}>
+          <ScoreRing score={average} ringClass={s.ring} />
+          <div>
+            <p className={`text-xl font-bold ${s.label}`}>{tier.label}</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">Average Score Across {history.length} Questions</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          {Object.entries(byCategory).map(([cat, scores]) => {
+            const avg = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
             return (
-              <div key={label} className={`flex items-center gap-4 rounded-xl border px-5 py-4 ${c.wrap}`}>
-                <ScoreRing score={score} ringClass={c.ring} size={56} />
-                <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{label}</p>
+              <div key={cat} className="rounded-xl border border-slate-200/50 p-4 text-center dark:border-slate-700/30">
+                <p className="text-2xl font-black text-slate-900 dark:text-slate-100">{avg}</p>
+                <p className="mt-1 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                  {CATEGORY_LABELS[cat] ?? cat}
+                </p>
               </div>
             )
           })}
         </div>
-      )}
+      </section>
 
-      <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        {Object.entries(byCategory).map(([cat, scores]) => {
-          const avg = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
-          return (
-            <div key={cat} className="rounded-xl border border-slate-200/50 p-4 text-center dark:border-slate-700/30">
-              <p className="text-2xl font-black text-slate-900 dark:text-slate-100">{avg}</p>
-              <p className="mt-1 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                {CATEGORY_LABELS[cat] ?? cat}
-              </p>
-            </div>
-          )
-        })}
-      </div>
-
-      {speechSamples.length > 0 && (
-        <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <div className="rounded-xl border border-slate-200/50 p-4 text-center dark:border-slate-700/30">
-            <p className="text-2xl font-black text-slate-900 dark:text-slate-100">
-              {Math.round(speechSamples.reduce((a, b) => a + b.words_per_minute, 0) / speechSamples.length)}
-            </p>
-            <p className="mt-1 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Avg WPM</p>
-          </div>
-          <div className="rounded-xl border border-slate-200/50 p-4 text-center dark:border-slate-700/30">
-            <p className="text-2xl font-black text-slate-900 dark:text-slate-100">
-              {speechSamples.reduce((a, b) => a + b.filler_word_count, 0)}
-            </p>
-            <p className="mt-1 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Filler Words</p>
-          </div>
-          {videoSamples.length > 0 && (
-            <>
-              <div className="rounded-xl border border-slate-200/50 p-4 text-center dark:border-slate-700/30">
-                <p className="text-2xl font-black text-slate-900 dark:text-slate-100">
-                  {Math.round((videoSamples.reduce((a, b) => a + b.camera_facing_ratio, 0) / videoSamples.length) * 100)}%
-                </p>
-                <p className="mt-1 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                  Camera Engagement
-                </p>
-              </div>
-              <div className="rounded-xl border border-slate-200/50 p-4 text-center dark:border-slate-700/30">
-                <p className="text-2xl font-black text-slate-900 dark:text-slate-100">
-                  {Math.round(videoSamples.reduce((a, b) => a + b.head_stability_score, 0) / videoSamples.length)}
-                </p>
-                <p className="mt-1 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                  Head Steadiness
-                </p>
-              </div>
-            </>
-          )}
-        </div>
+      {mode !== 'text' && (
+        <InterviewPerformanceReport
+          mode={mode}
+          entries={history.map((h) => ({ evaluation: h.evaluation, speechMetrics: h.speechMetrics, videoMetrics: h.videoMetrics }))}
+        />
       )}
 
       <button
@@ -127,7 +75,7 @@ function SummaryView({ history, company, mode, onStartOver }) {
         <RotateCcw className="h-5 w-5" />
         Start Over
       </button>
-    </section>
+    </div>
   )
 }
 
