@@ -4,6 +4,7 @@ import { AlertTriangle, ArrowLeft, CheckCircle2, Lightbulb } from 'lucide-react'
 import { fetchInterviewHistoryDetail } from '../api/client.js'
 import AnswerEvaluationPanel from '../components/AnswerEvaluationPanel.jsx'
 import DeliveryEvaluationPanel from '../components/DeliveryEvaluationPanel.jsx'
+import AIInterviewReview from '../components/AIInterviewReview.jsx'
 import InterviewKitSkeleton from '../components/InterviewKitSkeleton.jsx'
 import InterviewPerformanceReport from '../components/InterviewPerformanceReport.jsx'
 import ScoreRing, { COLOR_STYLES, getScoreTier } from '../components/ScoreRing.jsx'
@@ -158,6 +159,8 @@ export default function InterviewHistoryDetailPage() {
               }))}
             />
           )}
+
+          <AIInterviewReview review={detail.review} />
 
           <div className="flex flex-col gap-6">
             {detail.qa.map((entry, i) => (

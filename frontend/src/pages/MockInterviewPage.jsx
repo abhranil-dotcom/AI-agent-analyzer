@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { AlertTriangle, ArrowRight, RotateCcw, Trophy } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Loader2, RotateCcw, Trophy } from 'lucide-react'
+import AIInterviewReview from '../components/AIInterviewReview.jsx'
 import AnswerEvaluationPanel from '../components/AnswerEvaluationPanel.jsx'
 import DeliveryEvaluationPanel from '../components/DeliveryEvaluationPanel.jsx'
 import InterviewModeSelect from '../components/InterviewModeSelect.jsx'
@@ -15,7 +16,7 @@ import { evaluateAnswer, saveInterviewHistory } from '../api/client.js'
 import { useToast } from '../context/ToastContext.jsx'
 import { CATEGORY_LABELS, flattenQuestions } from '../constants/interview.js'
 
-function SummaryView({ history, company, mode, onStartOver }) {
+function SummaryView({ history, company, mode, review, reviewStatus, onStartOver }) {
   const average = Math.round(history.reduce((sum, h) => sum + h.evaluation.score, 0) / history.length)
   const tier = getScoreTier(average)
   const s = COLOR_STYLES[tier.color]
@@ -67,6 +68,14 @@ function SummaryView({ history, company, mode, onStartOver }) {
         />
       )}
 
+      {reviewStatus === 'pending' && (
+        <div className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200/60 bg-white/90 p-6 text-sm font-semibold text-slate-500 shadow-xl backdrop-blur-xl dark:border-white/[0.08] dark:bg-slate-900/80 dark:text-slate-400">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Generating your AI Interview Review…
+        </div>
+      )}
+      <AIInterviewReview review={review} />
+
       <button
         type="button"
         onClick={onStartOver}
@@ -88,6 +97,8 @@ export default function MockInterviewPage({ interviewKit, targetRole, company })
   const [history, setHistory] = useState([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState(null)
+  const [review, setReview] = useState(null)
+  const [reviewStatus, setReviewStatus] = useState('pending') // 'pending' | 'ready' | 'unavailable'
   const navigate = useNavigate()
   const { showToast } = useToast()
   const sessionStartRef = useRef(Date.now())
@@ -117,8 +128,18 @@ export default function MockInterviewPage({ interviewKit, targetRole, company })
         video_metrics: h.videoMetrics ?? null,
       })),
     })
-      .then(() => showToast('Interview saved to history.'))
-      .catch(() => showToast('Could not save this interview to history.', 'error'))
+      .then((data) => {
+        showToast('Interview saved to history.')
+        // Best-effort on the backend — a session can save successfully with no review attached
+        // (generation failed) or an older session before this feature existed; either way this
+        // just means AIInterviewReview renders nothing rather than an error.
+        setReview(data.review ?? null)
+        setReviewStatus(data.review ? 'ready' : 'unavailable')
+      })
+      .catch(() => {
+        showToast('Could not save this interview to history.', 'error')
+        setReviewStatus('unavailable')
+      })
   }, [isComplete, history, company, targetRole, showToast])
 
   // Shared across all three modes — only how `answerText`/`metrics` are produced differs.
@@ -185,7 +206,14 @@ export default function MockInterviewPage({ interviewKit, targetRole, company })
         {!mode ? (
           <InterviewModeSelect onSelect={setMode} />
         ) : isComplete ? (
-          <SummaryView history={history} company={company} mode={mode} onStartOver={() => navigate('/')} />
+          <SummaryView
+            history={history}
+            company={company}
+            mode={mode}
+            review={review}
+            reviewStatus={reviewStatus}
+            onStartOver={() => navigate('/')}
+          />
         ) : (
           <>
             <InterviewQuestionCard question={currentQuestion} index={currentIndex} total={questions.length} />

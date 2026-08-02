@@ -511,6 +511,24 @@ class ResumeHistoryCompareResponse(BaseModel):
     b: ResumeHistoryDetail
 
 
+class InterviewReview(BaseModel):
+    """LLM-synthesized end-of-session review, generated once when a session is saved (see
+    InterviewReviewAgent). Grounded ONLY in the real per-turn evaluations and aggregated delivery/
+    presentation metrics actually captured during the session — never invents an issue the data
+    doesn't support, and its communication/presentation content is scoped to what the interview
+    mode actually measured (Text gets none of it, Voice gets delivery only, Video gets both)."""
+
+    overall_review: str = Field(..., description="2-4 sentence overall assessment of how the candidate performed in this session")
+    strengths: list[str] = Field(default_factory=list, description="2-4 things the candidate did well, grounded in this session's real evaluations/metrics")
+    areas_to_improve: list[str] = Field(default_factory=list, description="Specific weaknesses actually evidenced in this session's data")
+    actionable_suggestions: list[str] = Field(default_factory=list, description="Specific, actionable suggestions for the candidate's next interview")
+    focus_for_next_interview: list[str] = Field(
+        default_factory=list, max_length=3, description="The top 1-3 highest-impact improvements to focus on next"
+    )
+
+    model_config = {"from_attributes": True}
+
+
 class InterviewQAEntry(BaseModel):
     """One question/answer/evaluation turn within a saved interview session."""
 
@@ -557,6 +575,9 @@ class InterviewHistoryEntry(BaseModel):
 class InterviewHistoryDetail(InterviewHistoryEntry):
     duration_seconds: int | None
     qa: list[InterviewQAEntry]
+    # Absent for sessions saved before this feature, or if review generation failed — best-effort,
+    # never blocks saving the actual interview record.
+    review: InterviewReview | None = None
 
 
 class InterviewHistoryListResponse(BaseModel):

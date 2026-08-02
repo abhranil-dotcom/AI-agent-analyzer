@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -61,6 +61,28 @@ class InterviewHistory(Base):
     # Full list of {question, category, candidate_answer, evaluation} — everything needed to
     # re-render the session without ever calling the LLM again.
     qa_json: Mapped[list[Any]] = mapped_column(JSONB, nullable=False)
+
+
+class InterviewReview(Base):
+    """One row per InterviewHistory session — the LLM-synthesized end-of-session review (overall
+    assessment, strengths, areas to improve, actionable suggestions, top-3 focus). A separate table
+    rather than a new column on InterviewHistory: this app has no migration tool, and create_all()
+    only creates missing tables, never alters existing ones — a new table is the safe way to add a
+    field to an already-deployed schema. Best-effort: absent if generation failed or predates this
+    feature, so a missing row must never break rendering a saved session."""
+
+    __tablename__ = "interview_review"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    interview_history_id: Mapped[int] = mapped_column(
+        ForeignKey("interview_history.id"), unique=True, index=True, nullable=False
+    )
+    overall_review: Mapped[str] = mapped_column(Text, nullable=False)
+    strengths: Mapped[list[str]] = mapped_column(JSONB, nullable=False)
+    areas_to_improve: Mapped[list[str]] = mapped_column(JSONB, nullable=False)
+    actionable_suggestions: Mapped[list[str]] = mapped_column(JSONB, nullable=False)
+    focus_for_next_interview: Mapped[list[str]] = mapped_column(JSONB, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
 
 class JDMatchHistory(Base):

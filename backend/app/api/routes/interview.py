@@ -5,10 +5,11 @@ from sqlalchemy.orm import Session
 
 from app.agent.answer_evaluator import AnswerEvaluatorAgent, get_answer_evaluator_agent
 from app.agent.interview_kit_generator import InterviewKitGeneratorAgent, get_interview_kit_agent
+from app.agent.interview_review_generator import get_interview_review_agent
 from app.api.deps import get_current_user
 from app.data.companies.registry import get_company
 from app.db.database import get_db
-from app.db.models import InterviewHistory, User
+from app.db.models import InterviewHistory, InterviewReview as InterviewReviewRow, User
 from app.models.schemas import (
     EvaluateAnswerRequest,
     EvaluateAnswerResponse,
@@ -17,6 +18,8 @@ from app.models.schemas import (
     InterviewHistoryDetail,
     InterviewHistoryEntry,
     InterviewHistoryListResponse,
+    InterviewQAEntry,
+    InterviewReview,
     SaveInterviewHistoryRequest,
 )
 from app.services.vector_store import KnowledgeBaseUnavailableError
@@ -88,6 +91,16 @@ async def evaluate_answer(
     return EvaluateAnswerResponse(evaluation=evaluation)
 
 
+def _infer_interview_mode(qa: list[InterviewQAEntry]) -> str:
+    """No `interview_mode` is persisted at the session level (see InterviewHistory) — derived from
+    which per-turn metrics are present, same inference InterviewHistoryDetailPage.jsx does client-side."""
+    if any(item.video_metrics is not None for item in qa):
+        return "video"
+    if any(item.speech_metrics is not None for item in qa):
+        return "voice"
+    return "text"
+
+
 def _get_owned_interview_history(history_id: int, current_user: User, db: Session) -> InterviewHistory:
     entry = (
         db.query(InterviewHistory)
@@ -130,10 +143,45 @@ async def save_interview_history(
     db.commit()
     db.refresh(entry)
 
+    # Best-effort: the AI Interview Review is an enhancement, not the record itself — a failure
+    # here must never lose the interview the candidate just saved. Agent construction happens
+    # INSIDE this try, not via Depends(...) — a Depends(...) failure (e.g. missing LLM credentials)
+    # is resolved by FastAPI before this function body even runs, which would turn a review-only
+    # failure into a 500 that loses the whole save.
+    review: InterviewReview | None = None
+    try:
+        review_agent = get_interview_review_agent()
+        review = await review_agent.generate(
+            body.company_slug,
+            body.target_role,
+            _infer_interview_mode(body.qa),
+            body.qa,
+            overall_score,
+            technical_score,
+            communication_score,
+            confidence_score,
+        )
+        db.add(
+            InterviewReviewRow(
+                interview_history_id=entry.id,
+                overall_review=review.overall_review,
+                strengths=review.strengths,
+                areas_to_improve=review.areas_to_improve,
+                actionable_suggestions=review.actionable_suggestions,
+                focus_for_next_interview=review.focus_for_next_interview,
+            )
+        )
+        db.commit()
+    except Exception as exc:
+        logger.exception("Interview review generation failed for history_id=%s: %s", entry.id, exc)
+        db.rollback()
+        review = None
+
     return InterviewHistoryDetail(
         **InterviewHistoryEntry.model_validate(entry).model_dump(),
         duration_seconds=entry.duration_seconds,
         qa=entry.qa_json,
+        review=review,
     )
 
 
@@ -165,10 +213,14 @@ async def get_interview_history(
 ) -> InterviewHistoryDetail:
     """Returns the exact saved Q&A/feedback — never regenerated."""
     entry = _get_owned_interview_history(history_id, current_user, db)
+    review_row = (
+        db.query(InterviewReviewRow).filter(InterviewReviewRow.interview_history_id == entry.id).first()
+    )
     return InterviewHistoryDetail(
         **InterviewHistoryEntry.model_validate(entry).model_dump(),
         duration_seconds=entry.duration_seconds,
         qa=entry.qa_json,
+        review=InterviewReview.model_validate(review_row) if review_row else None,
     )
 
 
