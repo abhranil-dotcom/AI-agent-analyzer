@@ -9,8 +9,8 @@
 // sitting normally upright, and everyday head turns/webcam angles add a few more degrees on top.
 // These thresholds are tuned to only fire for a clearly significant lean/slouch, not normal
 // posture or ordinary movement while talking.
-const TILT_WARNING_DEGREES = 25 // shoulder-line tilt beyond this reads as "leaning"
-const OFFSET_WARNING = 0.22 // normalized head-over-shoulders horizontal misalignment
+const TILT_WARNING_DEGREES = 35 // shoulder-line tilt beyond this reads as "leaning"
+const OFFSET_WARNING = 0.3 // normalized head-over-shoulders horizontal misalignment
 
 // `sample` is usePoseLandmarker's detectFrame() result: { poseDetected, shoulderTiltDegrees, headShoulderOffsetX }.
 export function computePostureScore(sample) {
@@ -24,5 +24,7 @@ export function computePostureScore(sample) {
 
 export function isPostureWarning(sample) {
   if (!sample?.poseDetected) return false
-  return Math.abs(sample.shoulderTiltDegrees) > TILT_WARNING_DEGREES || Math.abs(sample.headShoulderOffsetX) > OFFSET_WARNING
+  // Both signals, not either — a genuine slouch/lean shows up on tilt AND head-offset together;
+  // requiring only one made normal sitting trip the warning on ordinary single-axis pose noise.
+  return Math.abs(sample.shoulderTiltDegrees) > TILT_WARNING_DEGREES && Math.abs(sample.headShoulderOffsetX) > OFFSET_WARNING
 }
