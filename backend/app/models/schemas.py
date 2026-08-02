@@ -463,6 +463,15 @@ class LearningResourceEntry(BaseModel):
     )
     resource_url: str = Field(..., description="A real, always-valid URL, built server-side")
     is_curated: bool = Field(..., description="True only for a verified specific resource, not a search fallback")
+    instructor: str | None = Field(None, description="Only set for a verified curated course with a known real instructor")
+    price_status: str | None = Field(
+        None,
+        description=(
+            "Honest price/status label for paid platforms ('Price varies', 'Free to Audit', 'Subscription') — "
+            "never a specific invented number. Null for free platforms, which show a FREE badge instead."
+        ),
+    )
+    is_free: bool = Field(..., description="True for platforms whose learning content has no paywall — drives the Paid/Free page split")
 
 
 class RecommendLearningResourcesRequest(BaseModel):

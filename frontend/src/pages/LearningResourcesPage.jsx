@@ -22,6 +22,99 @@ function groupByPlatform(resources) {
   }))
 }
 
+// Every factual field here (title, instructor, price_status, resource_url, is_free) is resolved
+// server-side by resolve_resource() — never LLM-invented (see learning_platforms.py). A resource
+// with no verified curated match still gets an honest platform search link, never a guessed one.
+function ResourceCard({ resource }) {
+  return (
+    <article className="flex flex-col rounded-2xl border border-slate-200/60 bg-white/90 p-6 shadow-xl backdrop-blur-xl dark:border-white/[0.08] dark:bg-slate-900/80">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <span className="text-xs font-bold uppercase tracking-widest text-brand-600 dark:text-brand-400">
+          {resource.skill}
+        </span>
+        <span
+          className={`rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${DIFFICULTY_STYLES[resource.difficulty]}`}
+        >
+          {resource.difficulty}
+        </span>
+      </div>
+
+      <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">{resource.title}</h3>
+      {resource.instructor && (
+        <p className="mt-0.5 text-xs font-medium text-slate-500 dark:text-slate-400">By {resource.instructor}</p>
+      )}
+
+      <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">{resource.why_recommended}</p>
+
+      <p className="mt-3 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+        <span className="font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+          What you&rsquo;ll learn:{' '}
+        </span>
+        {resource.what_to_look_for}
+      </p>
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        {resource.estimated_duration && (
+          <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400">
+            <Clock className="h-3.5 w-3.5" />
+            {resource.estimated_duration}
+          </span>
+        )}
+        {resource.is_free ? (
+          <span className="rounded-full border border-emerald-300/70 bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800 dark:border-emerald-800/40 dark:bg-emerald-950/40 dark:text-emerald-300">
+            FREE
+          </span>
+        ) : (
+          resource.price_status && (
+            <span className="rounded-full border border-slate-300/70 bg-slate-100 px-2.5 py-0.5 text-[11px] font-bold text-slate-700 dark:border-slate-600/60 dark:bg-slate-800/60 dark:text-slate-300">
+              {resource.price_status}
+            </span>
+          )
+        )}
+      </div>
+
+      <a
+        href={resource.resource_url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold text-slate-700 transition-colors hover:border-brand-300 hover:text-brand-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-200 dark:hover:text-brand-400"
+      >
+        {resource.is_free ? 'Open Resource' : 'View Course'}
+        <ExternalLink className="h-3.5 w-3.5" />
+      </a>
+    </article>
+  )
+}
+
+function PlatformGroups({ grouped }) {
+  return (
+    <div className="flex flex-col gap-10">
+      {grouped.map(({ platform, resources: platformResources }) => {
+        const meta = PLATFORM_META[platform]
+        const Icon = meta.icon
+        return (
+          <section key={platform}>
+            <div className="mb-4 flex items-center gap-2.5">
+              <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${meta.accent}`}>
+                <Icon className="h-5 w-5" strokeWidth={1.9} />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                {platformResources[0].platform_name}
+              </h3>
+            </div>
+
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              {platformResources.map((resource, i) => (
+                <ResourceCard key={i} resource={resource} />
+              ))}
+            </div>
+          </section>
+        )
+      })}
+    </div>
+  )
+}
+
 export default function LearningResourcesPage({ result, targetRole, analysis }) {
   const [resources, setResources] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -30,7 +123,14 @@ export default function LearningResourcesPage({ result, targetRole, analysis }) 
   const location = useLocation()
 
   const extraSkills = location.state?.extraSkills ?? []
-  const grouped = useMemo(() => (resources ? groupByPlatform(resources) : []), [resources])
+  const paidGrouped = useMemo(
+    () => (resources ? groupByPlatform(resources.filter((r) => !r.is_free)) : []),
+    [resources],
+  )
+  const freeGrouped = useMemo(
+    () => (resources ? groupByPlatform(resources.filter((r) => r.is_free)) : []),
+    [resources],
+  )
 
   async function handleGenerate() {
     if (isLoading) return
@@ -122,77 +222,22 @@ export default function LearningResourcesPage({ result, targetRole, analysis }) 
           </div>
         )}
 
-        {grouped.length > 0 && (
-          <div className="flex flex-col gap-10">
-            {grouped.map(({ platform, resources: platformResources }) => {
-              const meta = PLATFORM_META[platform]
-              const Icon = meta.icon
-              return (
-                <section key={platform}>
-                  <div className="mb-4 flex items-center gap-2.5">
-                    <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${meta.accent}`}>
-                      <Icon className="h-5 w-5" strokeWidth={1.9} />
-                    </div>
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                      {platformResources[0].platform_name}
-                    </h2>
-                  </div>
+        {paidGrouped.length > 0 && (
+          <section>
+            <h2 className="mb-6 text-xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
+              Paid Courses
+            </h2>
+            <PlatformGroups grouped={paidGrouped} />
+          </section>
+        )}
 
-                  <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                    {platformResources.map((resource, i) => (
-                      <article
-                        key={i}
-                        className="flex flex-col rounded-2xl border border-slate-200/60 bg-white/90 p-6 shadow-xl backdrop-blur-xl dark:border-white/[0.08] dark:bg-slate-900/80"
-                      >
-                        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                          <span className="text-xs font-bold uppercase tracking-widest text-brand-600 dark:text-brand-400">
-                            {resource.skill}
-                          </span>
-                          <span
-                            className={`rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${DIFFICULTY_STYLES[resource.difficulty]}`}
-                          >
-                            {resource.difficulty}
-                          </span>
-                        </div>
-
-                        <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
-                          {resource.title}
-                        </h3>
-
-                        <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-                          {resource.why_recommended}
-                        </p>
-
-                        <p className="mt-3 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-                          <span className="font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
-                            What to look for:{' '}
-                          </span>
-                          {resource.what_to_look_for}
-                        </p>
-
-                        {resource.estimated_duration && (
-                          <p className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400">
-                            <Clock className="h-3.5 w-3.5" />
-                            {resource.estimated_duration}
-                          </p>
-                        )}
-
-                        <a
-                          href={resource.resource_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold text-slate-700 transition-colors hover:border-brand-300 hover:text-brand-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-200 dark:hover:text-brand-400"
-                        >
-                          Open Resource
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </a>
-                      </article>
-                    ))}
-                  </div>
-                </section>
-              )
-            })}
-          </div>
+        {freeGrouped.length > 0 && (
+          <section>
+            <h2 className="mb-6 text-xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
+              Free Resources
+            </h2>
+            <PlatformGroups grouped={freeGrouped} />
+          </section>
         )}
       </div>
     </>

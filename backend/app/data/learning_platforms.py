@@ -78,17 +78,58 @@ class ResolvedResource:
     resource_url: str
     estimated_duration: str | None
     is_curated: bool
+    instructor: str | None = None
+    # Only meaningful for paid platforms — an honest status label ("Price varies", "Free to
+    # Audit", "Subscription"), never a specific invented number, since list prices (Udemy
+    # especially) change/discount too often to state a figure as current and correct.
+    price_status: str | None = None
+    is_free: bool = False
 
 
 @dataclass(frozen=True)
 class _CuratedEntry:
-    slug: str
-    title: str
+    slug: str | None = None
+    title: str = ""
     duration: str | None = None
+    # Set instead of `slug` for platforms with no clean per-skill URL template (Udemy, Coursera) —
+    # a full, individually verified real course/specialization URL.
+    url: str | None = None
+    instructor: str | None = None
+    price_status: str | None = None
 
 
 def _normalize(skill: str) -> str:
     return " ".join(skill.strip().lower().split())
+
+
+# Platforms whose actual learning content is free to access (no paywall on the material itself,
+# even where a separate paid certification exam exists) — drives the Learning Resources page's
+# Paid/Free section split. Everything else (udemy, coursera, edx, codecademy) is paid/subscription.
+FREE_PLATFORMS: frozenset[str] = frozenset(
+    {
+        "freecodecamp",
+        "youtube",
+        "microsoft_learn",
+        "aws_skill_builder",
+        "google_cloud_skills_boost",
+        "oracle_university",
+        "cisco_networking_academy",
+        "kaggle_learn",
+        "geeksforgeeks",
+        "leetcode",
+        "hackerrank",
+    }
+)
+
+# Honest status label for a NON-curated (search/browse-page) pick on a paid platform — never a
+# specific price, since a search link doesn't point at one course. Free platforms need no entry
+# here (the frontend shows a FREE badge from `is_free` instead).
+_FALLBACK_PRICE_STATUS: dict[str, str] = {
+    "udemy": "Price varies",
+    "coursera": "Free to Audit",
+    "edx": "Free to Audit",
+    "codecademy": "Subscription",
+}
 
 
 # Verified stable Kaggle Learn micro-course slugs (kaggle.com/learn/<slug>).
@@ -161,6 +202,172 @@ EDX_SUBJECTS: dict[str, _CuratedEntry] = {
     "machine learning": _CuratedEntry("machine-learning", "Machine Learning"),
 }
 
+# Individually researched and verified (title + instructor + URL cross-checked against Udemy's own
+# indexed course pages and independent course-aggregator sites — Class Central, OpenCourser — in
+# August 2026) real, currently-live Udemy courses. Deliberately NOT an exhaustive skill list — for
+# any skill not covered here, resolve_resource() falls back to Udemy's real search results page
+# rather than guess at a course that may not exist. price_status is always "Price varies", never a
+# specific number: Udemy list/sale prices change too often and by region to state a current figure.
+UDEMY_COURSES: dict[str, _CuratedEntry] = {
+    "angular": _CuratedEntry(
+        title="Angular - The Complete Guide (2024 Edition)",
+        url="https://www.udemy.com/course/the-complete-guide-to-angular-2/",
+        instructor="Maximilian Schwarzmüller",
+        price_status="Price varies",
+    ),
+    "react": _CuratedEntry(
+        title="React - The Complete Guide (incl. Next.js, Redux)",
+        url="https://www.udemy.com/course/react-the-complete-guide-incl-redux/",
+        instructor="Maximilian Schwarzmüller",
+        price_status="Price varies",
+    ),
+    "typescript": _CuratedEntry(
+        title="Understanding TypeScript",
+        url="https://www.udemy.com/course/understanding-typescript/",
+        instructor="Maximilian Schwarzmüller",
+        price_status="Price varies",
+    ),
+    "rxjs": _CuratedEntry(
+        title="RxJs In Practice",
+        url="https://www.udemy.com/course/rxjs-course/",
+        instructor="Angular University",
+        price_status="Price varies",
+    ),
+    "vue": _CuratedEntry(
+        title="Vue - The Complete Guide (incl. Router & Composition API)",
+        url="https://www.udemy.com/course/vuejs-2-the-complete-guide/",
+        instructor="Maximilian Schwarzmüller",
+        price_status="Price varies",
+    ),
+    "vue.js": _CuratedEntry(
+        title="Vue - The Complete Guide (incl. Router & Composition API)",
+        url="https://www.udemy.com/course/vuejs-2-the-complete-guide/",
+        instructor="Maximilian Schwarzmüller",
+        price_status="Price varies",
+    ),
+    "node.js": _CuratedEntry(
+        title="NodeJS - The Complete Guide (MVC, REST APIs, GraphQL, Deno)",
+        url="https://www.udemy.com/course/nodejs-the-complete-guide/",
+        instructor="Maximilian Schwarzmüller",
+        price_status="Price varies",
+    ),
+    "node": _CuratedEntry(
+        title="NodeJS - The Complete Guide (MVC, REST APIs, GraphQL, Deno)",
+        url="https://www.udemy.com/course/nodejs-the-complete-guide/",
+        instructor="Maximilian Schwarzmüller",
+        price_status="Price varies",
+    ),
+    "docker": _CuratedEntry(
+        title="Docker & Kubernetes: The Practical Guide",
+        url="https://www.udemy.com/course/docker-kubernetes-the-practical-guide/",
+        instructor="Maximilian Schwarzmüller",
+        price_status="Price varies",
+    ),
+    "kubernetes": _CuratedEntry(
+        title="Docker & Kubernetes: The Practical Guide",
+        url="https://www.udemy.com/course/docker-kubernetes-the-practical-guide/",
+        instructor="Maximilian Schwarzmüller",
+        price_status="Price varies",
+    ),
+    "aws": _CuratedEntry(
+        title="Ultimate AWS Certified Solutions Architect Associate 2026",
+        url="https://www.udemy.com/course/aws-certified-solutions-architect-associate-saa-c03/",
+        instructor="Stephane Maarek",
+        price_status="Price varies",
+    ),
+    "sql": _CuratedEntry(
+        title="The Complete SQL Bootcamp: Go from Zero to Hero",
+        url="https://www.udemy.com/course/the-complete-sql-bootcamp/",
+        instructor="Jose Portilla",
+        price_status="Price varies",
+    ),
+    "mongodb": _CuratedEntry(
+        title="MongoDB - The Complete Developer's Guide",
+        url="https://www.udemy.com/course/mongodb-the-complete-developers-guide/",
+        instructor="Maximilian Schwarzmüller",
+        price_status="Price varies",
+    ),
+    "spring boot": _CuratedEntry(
+        title="Learn Spring Boot 3 in 100 Steps",
+        url="https://www.udemy.com/course/spring-boot-tutorial-for-beginners/",
+        instructor="Ranga Karanam (in28minutes)",
+        price_status="Price varies",
+    ),
+    "spring": _CuratedEntry(
+        title="Learn Spring Boot 3 in 100 Steps",
+        url="https://www.udemy.com/course/spring-boot-tutorial-for-beginners/",
+        instructor="Ranga Karanam (in28minutes)",
+        price_status="Price varies",
+    ),
+    "python": _CuratedEntry(
+        title="100 Days of Code: The Complete Python Pro Bootcamp",
+        url="https://www.udemy.com/course/100-days-of-code/",
+        instructor="Dr. Angela Yu",
+        price_status="Price varies",
+    ),
+    "system design": _CuratedEntry(
+        title="Mastering the System Design Interview",
+        url="https://www.udemy.com/course/system-design-interview-prep/",
+        instructor="Frank Kane",
+        price_status="Price varies",
+    ),
+    "git": _CuratedEntry(
+        title="The Git & GitHub Bootcamp",
+        url="https://www.udemy.com/course/git-and-github-bootcamp/",
+        instructor="Colt Steele",
+        price_status="Price varies",
+    ),
+    "github": _CuratedEntry(
+        title="The Git & GitHub Bootcamp",
+        url="https://www.udemy.com/course/git-and-github-bootcamp/",
+        instructor="Colt Steele",
+        price_status="Price varies",
+    ),
+    "machine learning": _CuratedEntry(
+        title="Machine Learning A-Z: AI, Python & R + ChatGPT Prize",
+        url="https://www.udemy.com/course/machinelearning/",
+        instructor="Kirill Eremenko, Hadelin de Ponteves",
+        price_status="Price varies",
+    ),
+}
+
+# Same discipline as UDEMY_COURSES — individually verified real Coursera specializations/
+# professional certificates. price_status is "Free to Audit" for all of them: this is a stable,
+# structural fact about how Coursera's audit model works (not a fluctuating price), so it's safe
+# to state directly rather than a generic "Price varies".
+COURSERA_COURSES: dict[str, _CuratedEntry] = {
+    "machine learning": _CuratedEntry(
+        title="Machine Learning Specialization",
+        url="https://www.coursera.org/specializations/machine-learning-introduction",
+        instructor="Andrew Ng — DeepLearning.AI & Stanford University",
+        price_status="Free to Audit",
+    ),
+    "cybersecurity": _CuratedEntry(
+        title="Google Cybersecurity Professional Certificate",
+        url="https://www.coursera.org/professional-certificates/google-cybersecurity",
+        instructor="Google",
+        price_status="Free to Audit",
+    ),
+    "python": _CuratedEntry(
+        title="Python for Everybody Specialization",
+        url="https://www.coursera.org/specializations/python",
+        instructor="Charles Russell Severance — University of Michigan",
+        price_status="Free to Audit",
+    ),
+    "aws": _CuratedEntry(
+        title="AWS Cloud Technology Consultant Professional Certificate",
+        url="https://www.coursera.org/professional-certificates/aws-cloud-technology-consultant",
+        instructor="Amazon Web Services",
+        price_status="Free to Audit",
+    ),
+    "cloud computing": _CuratedEntry(
+        title="AWS Cloud Technology Consultant Professional Certificate",
+        url="https://www.coursera.org/professional-certificates/aws-cloud-technology-consultant",
+        instructor="Amazon Web Services",
+        price_status="Free to Audit",
+    ),
+}
+
 # Search/browse URL builders for platforms without (or outside) a curated match. Every entry
 # here is a real, functional endpoint — never a guessed deep link to a specific listing.
 _SEARCH_URL_BUILDERS = {
@@ -192,6 +399,8 @@ _CURATED_REGISTRIES: dict[str, dict[str, _CuratedEntry]] = {
     "geeksforgeeks": GEEKSFORGEEKS_CATEGORIES,
     "leetcode": LEETCODE_TAGS,
     "edx": EDX_SUBJECTS,
+    "udemy": UDEMY_COURSES,
+    "coursera": COURSERA_COURSES,
 }
 
 _CURATED_URL_TEMPLATES: dict[str, str] = {
@@ -210,25 +419,47 @@ _CURATED_TITLE_TEMPLATES: dict[str, str] = {
 
 
 def resolve_resource(platform: str, skill: str) -> ResolvedResource:
-    """Deterministically resolves the real title/URL/duration for a (platform, skill) pair.
-    Never LLM-driven — see module docstring."""
+    """Deterministically resolves the real title/URL/duration/instructor/price for a (platform,
+    skill) pair. Never LLM-driven — see module docstring."""
     normalized = _normalize(skill)
     platform_name = PLATFORM_DISPLAY_NAMES[platform]
+    is_free = platform in FREE_PLATFORMS
 
     registry = _CURATED_REGISTRIES.get(platform)
     if registry is not None:
         entry = registry.get(normalized)
         if entry is not None:
-            url = _CURATED_URL_TEMPLATES[platform].format(slug=entry.slug)
-            title = _CURATED_TITLE_TEMPLATES[platform].format(title=entry.title)
-            return ResolvedResource(platform_name, title, url, entry.duration, is_curated=True)
+            # Udemy/Coursera entries carry a fully verified real URL directly; the other curated
+            # registries build one from a verified slug + that platform's stable URL template.
+            url = entry.url if entry.url is not None else _CURATED_URL_TEMPLATES[platform].format(slug=entry.slug)
+            title = _CURATED_TITLE_TEMPLATES[platform].format(title=entry.title) if platform in _CURATED_TITLE_TEMPLATES else entry.title
+            return ResolvedResource(
+                platform_name,
+                title,
+                url,
+                entry.duration,
+                is_curated=True,
+                instructor=entry.instructor,
+                price_status=entry.price_status,
+                is_free=is_free,
+            )
 
     if platform in _STATIC_CATALOG_PAGES:
         url, title = _STATIC_CATALOG_PAGES[platform]
-        return ResolvedResource(platform_name, title, url, None, is_curated=False)
+        return ResolvedResource(
+            platform_name, title, url, None, is_curated=False, price_status=_FALLBACK_PRICE_STATUS.get(platform), is_free=is_free
+        )
 
     builder = _SEARCH_URL_BUILDERS.get(platform)
     if builder is not None:
-        return ResolvedResource(platform_name, f"Explore {skill} on {platform_name}", builder(skill), None, is_curated=False)
+        return ResolvedResource(
+            platform_name,
+            f"Explore {skill} on {platform_name}",
+            builder(skill),
+            None,
+            is_curated=False,
+            price_status=_FALLBACK_PRICE_STATUS.get(platform),
+            is_free=is_free,
+        )
 
     raise ValueError(f"Unknown learning platform key: {platform!r}")

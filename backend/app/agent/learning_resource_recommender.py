@@ -89,6 +89,9 @@ class LearningResourceRecommenderAgent:
                     estimated_duration=resolved.estimated_duration,
                     resource_url=resolved.resource_url,
                     is_curated=resolved.is_curated,
+                    instructor=resolved.instructor,
+                    price_status=resolved.price_status,
+                    is_free=resolved.is_free,
                 )
             )
         logger.info("Learning resource recommendation complete — %d entries", len(resources))
