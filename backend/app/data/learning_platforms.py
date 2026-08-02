@@ -1,13 +1,19 @@
 """
 Single source of truth for learning-platform facts: display names, LLM-facing specialty
-descriptions, and real resource URLs/titles/durations. The LLM never invents a URL, specific
-course title, or duration — it only picks which platforms are relevant per skill (see
-LEARNING_RESOURCES_SYSTEM_PROMPT); everything factual here is resolved deterministically by
-resolve_resource().
+descriptions, and real resource URLs/titles/instructors/prices. The LLM never invents a URL,
+specific course title, instructor, or price, and never picks which platform to recommend either —
+see get_curated_matches(), the recommender agent's only entry point into this module. For a given
+missing skill, it returns the single best verified paid resource and the single best verified free
+resource (or None on either side when no individually verified match exists) purely from the
+CURATED_* dicts below; the LLM's job is limited to writing personalized narrative (difficulty,
+why_recommended, what_to_look_for) about resources this module already resolved. A skill with no
+curated match on a given side is simply not recommended on that side — never a generic search or
+catalog-browse page presented as if it were a specific resource.
 
-Where a specific, verified real resource exists for a skill (the CURATED_* dicts below), that's
-used. Otherwise resolve_resource() falls back to that platform's real search/browse/catalog page
-— honestly labeled (e.g. "Explore X on Y"), never a fabricated specific listing.
+resolve_resource() (used internally by get_curated_matches(), and still usable standalone) *can*
+fall back to a platform's real search/browse page when nothing is curated — but that fallback path
+is deliberately never reached through get_curated_matches(), since a search-results page is not an
+individually verified specific resource.
 """
 
 from dataclasses import dataclass
@@ -73,13 +79,14 @@ PLATFORM_DESCRIPTIONS: dict[str, str] = {
 
 @dataclass(frozen=True)
 class ResolvedResource:
+    platform: str
     platform_name: str
     title: str
     resource_url: str
     estimated_duration: str | None
     is_curated: bool
     instructor: str | None = None
-    # Only meaningful for paid platforms — an honest status label ("Price varies", "Free to
+    # Only meaningful for paid platforms — an honest status label ("Check current price", "Free to
     # Audit", "Subscription"), never a specific invented number, since list prices (Udemy
     # especially) change/discount too often to state a figure as current and correct.
     price_status: str | None = None
@@ -125,9 +132,9 @@ FREE_PLATFORMS: frozenset[str] = frozenset(
 # specific price, since a search link doesn't point at one course. Free platforms need no entry
 # here (the frontend shows a FREE badge from `is_free` instead).
 _FALLBACK_PRICE_STATUS: dict[str, str] = {
-    "udemy": "Price varies",
-    "coursera": "Free to Audit",
-    "edx": "Free to Audit",
+    "udemy": "Check current price",
+    "coursera": "Free to audit",
+    "edx": "Free to audit",
     "codecademy": "Subscription",
 }
 
@@ -206,165 +213,261 @@ EDX_SUBJECTS: dict[str, _CuratedEntry] = {
 # indexed course pages and independent course-aggregator sites — Class Central, OpenCourser — in
 # August 2026) real, currently-live Udemy courses. Deliberately NOT an exhaustive skill list — for
 # any skill not covered here, resolve_resource() falls back to Udemy's real search results page
-# rather than guess at a course that may not exist. price_status is always "Price varies", never a
+# rather than guess at a course that may not exist. price_status is always "Check current price", never a
 # specific number: Udemy list/sale prices change too often and by region to state a current figure.
 UDEMY_COURSES: dict[str, _CuratedEntry] = {
     "angular": _CuratedEntry(
         title="Angular - The Complete Guide (2024 Edition)",
         url="https://www.udemy.com/course/the-complete-guide-to-angular-2/",
         instructor="Maximilian Schwarzmüller",
-        price_status="Price varies",
+        price_status="Check current price",
     ),
     "react": _CuratedEntry(
         title="React - The Complete Guide (incl. Next.js, Redux)",
         url="https://www.udemy.com/course/react-the-complete-guide-incl-redux/",
         instructor="Maximilian Schwarzmüller",
-        price_status="Price varies",
+        price_status="Check current price",
     ),
     "typescript": _CuratedEntry(
         title="Understanding TypeScript",
         url="https://www.udemy.com/course/understanding-typescript/",
         instructor="Maximilian Schwarzmüller",
-        price_status="Price varies",
+        price_status="Check current price",
     ),
     "rxjs": _CuratedEntry(
         title="RxJs In Practice",
         url="https://www.udemy.com/course/rxjs-course/",
         instructor="Angular University",
-        price_status="Price varies",
+        price_status="Check current price",
     ),
     "vue": _CuratedEntry(
         title="Vue - The Complete Guide (incl. Router & Composition API)",
         url="https://www.udemy.com/course/vuejs-2-the-complete-guide/",
         instructor="Maximilian Schwarzmüller",
-        price_status="Price varies",
+        price_status="Check current price",
     ),
     "vue.js": _CuratedEntry(
         title="Vue - The Complete Guide (incl. Router & Composition API)",
         url="https://www.udemy.com/course/vuejs-2-the-complete-guide/",
         instructor="Maximilian Schwarzmüller",
-        price_status="Price varies",
+        price_status="Check current price",
     ),
     "node.js": _CuratedEntry(
         title="NodeJS - The Complete Guide (MVC, REST APIs, GraphQL, Deno)",
         url="https://www.udemy.com/course/nodejs-the-complete-guide/",
         instructor="Maximilian Schwarzmüller",
-        price_status="Price varies",
+        price_status="Check current price",
     ),
     "node": _CuratedEntry(
         title="NodeJS - The Complete Guide (MVC, REST APIs, GraphQL, Deno)",
         url="https://www.udemy.com/course/nodejs-the-complete-guide/",
         instructor="Maximilian Schwarzmüller",
-        price_status="Price varies",
+        price_status="Check current price",
     ),
     "docker": _CuratedEntry(
         title="Docker & Kubernetes: The Practical Guide",
         url="https://www.udemy.com/course/docker-kubernetes-the-practical-guide/",
         instructor="Maximilian Schwarzmüller",
-        price_status="Price varies",
+        price_status="Check current price",
     ),
     "kubernetes": _CuratedEntry(
         title="Docker & Kubernetes: The Practical Guide",
         url="https://www.udemy.com/course/docker-kubernetes-the-practical-guide/",
         instructor="Maximilian Schwarzmüller",
-        price_status="Price varies",
+        price_status="Check current price",
     ),
     "aws": _CuratedEntry(
         title="Ultimate AWS Certified Solutions Architect Associate 2026",
         url="https://www.udemy.com/course/aws-certified-solutions-architect-associate-saa-c03/",
         instructor="Stephane Maarek",
-        price_status="Price varies",
+        price_status="Check current price",
     ),
     "sql": _CuratedEntry(
         title="The Complete SQL Bootcamp: Go from Zero to Hero",
         url="https://www.udemy.com/course/the-complete-sql-bootcamp/",
         instructor="Jose Portilla",
-        price_status="Price varies",
+        price_status="Check current price",
     ),
     "mongodb": _CuratedEntry(
         title="MongoDB - The Complete Developer's Guide",
         url="https://www.udemy.com/course/mongodb-the-complete-developers-guide/",
         instructor="Maximilian Schwarzmüller",
-        price_status="Price varies",
+        price_status="Check current price",
     ),
     "spring boot": _CuratedEntry(
         title="Learn Spring Boot 3 in 100 Steps",
         url="https://www.udemy.com/course/spring-boot-tutorial-for-beginners/",
         instructor="Ranga Karanam (in28minutes)",
-        price_status="Price varies",
+        price_status="Check current price",
     ),
     "spring": _CuratedEntry(
         title="Learn Spring Boot 3 in 100 Steps",
         url="https://www.udemy.com/course/spring-boot-tutorial-for-beginners/",
         instructor="Ranga Karanam (in28minutes)",
-        price_status="Price varies",
+        price_status="Check current price",
     ),
     "python": _CuratedEntry(
         title="100 Days of Code: The Complete Python Pro Bootcamp",
         url="https://www.udemy.com/course/100-days-of-code/",
         instructor="Dr. Angela Yu",
-        price_status="Price varies",
+        price_status="Check current price",
     ),
     "system design": _CuratedEntry(
         title="Mastering the System Design Interview",
         url="https://www.udemy.com/course/system-design-interview-prep/",
         instructor="Frank Kane",
-        price_status="Price varies",
+        price_status="Check current price",
     ),
     "git": _CuratedEntry(
         title="The Git & GitHub Bootcamp",
         url="https://www.udemy.com/course/git-and-github-bootcamp/",
         instructor="Colt Steele",
-        price_status="Price varies",
+        price_status="Check current price",
     ),
     "github": _CuratedEntry(
         title="The Git & GitHub Bootcamp",
         url="https://www.udemy.com/course/git-and-github-bootcamp/",
         instructor="Colt Steele",
-        price_status="Price varies",
+        price_status="Check current price",
     ),
     "machine learning": _CuratedEntry(
         title="Machine Learning A-Z: AI, Python & R + ChatGPT Prize",
         url="https://www.udemy.com/course/machinelearning/",
         instructor="Kirill Eremenko, Hadelin de Ponteves",
-        price_status="Price varies",
+        price_status="Check current price",
     ),
 }
 
 # Same discipline as UDEMY_COURSES — individually verified real Coursera specializations/
-# professional certificates. price_status is "Free to Audit" for all of them: this is a stable,
+# professional certificates. price_status is "Free to audit" for all of them: this is a stable,
 # structural fact about how Coursera's audit model works (not a fluctuating price), so it's safe
-# to state directly rather than a generic "Price varies".
+# to state directly rather than a generic "Check current price".
 COURSERA_COURSES: dict[str, _CuratedEntry] = {
     "machine learning": _CuratedEntry(
         title="Machine Learning Specialization",
         url="https://www.coursera.org/specializations/machine-learning-introduction",
         instructor="Andrew Ng — DeepLearning.AI & Stanford University",
-        price_status="Free to Audit",
+        price_status="Free to audit",
     ),
     "cybersecurity": _CuratedEntry(
         title="Google Cybersecurity Professional Certificate",
         url="https://www.coursera.org/professional-certificates/google-cybersecurity",
         instructor="Google",
-        price_status="Free to Audit",
+        price_status="Free to audit",
     ),
     "python": _CuratedEntry(
         title="Python for Everybody Specialization",
         url="https://www.coursera.org/specializations/python",
         instructor="Charles Russell Severance — University of Michigan",
-        price_status="Free to Audit",
+        price_status="Free to audit",
     ),
     "aws": _CuratedEntry(
         title="AWS Cloud Technology Consultant Professional Certificate",
         url="https://www.coursera.org/professional-certificates/aws-cloud-technology-consultant",
         instructor="Amazon Web Services",
-        price_status="Free to Audit",
+        price_status="Free to audit",
     ),
     "cloud computing": _CuratedEntry(
         title="AWS Cloud Technology Consultant Professional Certificate",
         url="https://www.coursera.org/professional-certificates/aws-cloud-technology-consultant",
         instructor="Amazon Web Services",
-        price_status="Free to Audit",
+        price_status="Free to audit",
+    ),
+}
+
+# Individually researched and verified real freeCodeCamp News articles (each hosts/embeds a full,
+# free video course) — same discipline as UDEMY_COURSES/COURSERA_COURSES, verified in August 2026.
+# This is the FREE-side counterpart: a specific article URL, never freecodecamp.org's homepage or
+# search page. Every entry is free to access, so no price_status is set (the frontend shows a FREE
+# badge, driven by is_free — see FREE_PLATFORMS below).
+FREECODECAMP_RESOURCES: dict[str, _CuratedEntry] = {
+    "angular": _CuratedEntry(
+        title="Angular for Beginners Course + TypeScript [Full Front-End Tutorial]",
+        url="https://www.freecodecamp.org/news/angular-for-beginners-course/",
+    ),
+    "typescript": _CuratedEntry(
+        title="Learn TypeScript – The Ultimate Beginners Guide",
+        url="https://www.freecodecamp.org/news/learn-typescript-beginners-guide/",
+    ),
+    "react": _CuratedEntry(
+        title="Learn React - Full Course for Beginners",
+        url="https://www.freecodecamp.org/news/learn-react-course/",
+    ),
+    "node.js": _CuratedEntry(
+        title="Node.js Course for Beginners",
+        url="https://www.freecodecamp.org/news/nodejs-course/",
+    ),
+    "node": _CuratedEntry(
+        title="Node.js Course for Beginners",
+        url="https://www.freecodecamp.org/news/nodejs-course/",
+    ),
+    "docker": _CuratedEntry(
+        title="Docker Full Course",
+        url="https://www.freecodecamp.org/news/docker-full-course/",
+    ),
+    "kubernetes": _CuratedEntry(
+        title="Free 4-Hour Course on Docker and Kubernetes",
+        url="https://www.freecodecamp.org/news/course-on-docker-and-kubernetes/",
+    ),
+    "sql": _CuratedEntry(
+        title="Learn SQL for Efficient Data Storage and Retrieval",
+        url="https://www.freecodecamp.org/news/learn-sql-full-course/",
+    ),
+    "mongodb": _CuratedEntry(
+        title="MongoDB Full Course w/ Node.js, Express, & Mongoose",
+        url="https://www.freecodecamp.org/news/mongodb-full-course-nodejs-express-mongoose/",
+    ),
+    "git": _CuratedEntry(
+        title="Git & GitHub Crash Course for Beginners",
+        url="https://www.freecodecamp.org/news/git-and-github-crash-course-for-beginners/",
+    ),
+    "github": _CuratedEntry(
+        title="Git & GitHub Crash Course for Beginners",
+        url="https://www.freecodecamp.org/news/git-and-github-crash-course-for-beginners/",
+    ),
+    "machine learning": _CuratedEntry(
+        title="Learn Machine Learning – Full Comprehensive Course",
+        url="https://www.freecodecamp.org/news/learn-machine-learning-in-2024/",
+    ),
+    "ml": _CuratedEntry(
+        title="Learn Machine Learning – Full Comprehensive Course",
+        url="https://www.freecodecamp.org/news/learn-machine-learning-in-2024/",
+    ),
+    "vue": _CuratedEntry(
+        title="Learn Vue 3, a Front-End JavaScript Framework",
+        url="https://www.freecodecamp.org/news/vue-3-full-course/",
+    ),
+    "vue.js": _CuratedEntry(
+        title="Learn Vue 3, a Front-End JavaScript Framework",
+        url="https://www.freecodecamp.org/news/vue-3-full-course/",
+    ),
+    "system design": _CuratedEntry(
+        title="Learn Software System Design",
+        url="https://www.freecodecamp.org/news/learn-software-system-design/",
+    ),
+    "python": _CuratedEntry(
+        title="Free Python Crash Course",
+        url="https://www.freecodecamp.org/news/free-python-crash-course/",
+    ),
+    "spring boot": _CuratedEntry(
+        title="Spring Boot Tutorial - Learn the popular Java framework",
+        url="https://www.freecodecamp.org/news/spring-boot-tutorial/",
+    ),
+    "spring": _CuratedEntry(
+        title="Spring Boot Tutorial - Learn the popular Java framework",
+        url="https://www.freecodecamp.org/news/spring-boot-tutorial/",
+    ),
+    "aws": _CuratedEntry(
+        title="AWS Certified Cloud Practitioner Study Course – Pass the Exam With This Free Course",
+        url="https://www.freecodecamp.org/news/aws-certified-cloud-practitioner-certification-study-course-pass-the-exam/",
+    ),
+    "cloud computing": _CuratedEntry(
+        title="AWS Certified Cloud Practitioner Study Course – Pass the Exam With This Free Course",
+        url="https://www.freecodecamp.org/news/aws-certified-cloud-practitioner-certification-study-course-pass-the-exam/",
+    ),
+    "cybersecurity": _CuratedEntry(
+        title="Learn Cybersecurity from Harvard University",
+        url="https://www.freecodecamp.org/news/learn-cybersecurity-from-harvard-university/",
     ),
 }
 
@@ -401,6 +504,7 @@ _CURATED_REGISTRIES: dict[str, dict[str, _CuratedEntry]] = {
     "edx": EDX_SUBJECTS,
     "udemy": UDEMY_COURSES,
     "coursera": COURSERA_COURSES,
+    "freecodecamp": FREECODECAMP_RESOURCES,
 }
 
 _CURATED_URL_TEMPLATES: dict[str, str] = {
@@ -434,6 +538,7 @@ def resolve_resource(platform: str, skill: str) -> ResolvedResource:
             url = entry.url if entry.url is not None else _CURATED_URL_TEMPLATES[platform].format(slug=entry.slug)
             title = _CURATED_TITLE_TEMPLATES[platform].format(title=entry.title) if platform in _CURATED_TITLE_TEMPLATES else entry.title
             return ResolvedResource(
+                platform,
                 platform_name,
                 title,
                 url,
@@ -447,12 +552,13 @@ def resolve_resource(platform: str, skill: str) -> ResolvedResource:
     if platform in _STATIC_CATALOG_PAGES:
         url, title = _STATIC_CATALOG_PAGES[platform]
         return ResolvedResource(
-            platform_name, title, url, None, is_curated=False, price_status=_FALLBACK_PRICE_STATUS.get(platform), is_free=is_free
+            platform, platform_name, title, url, None, is_curated=False, price_status=_FALLBACK_PRICE_STATUS.get(platform), is_free=is_free
         )
 
     builder = _SEARCH_URL_BUILDERS.get(platform)
     if builder is not None:
         return ResolvedResource(
+            platform,
             platform_name,
             f"Explore {skill} on {platform_name}",
             builder(skill),
@@ -463,3 +569,24 @@ def resolve_resource(platform: str, skill: str) -> ResolvedResource:
         )
 
     raise ValueError(f"Unknown learning platform key: {platform!r}")
+
+
+# Preference order when a skill has more than one curated match on the paid/free side — picks the
+# single best one per side rather than showing every possible platform for the same skill.
+_PAID_PLATFORM_PRIORITY: list[str] = ["udemy", "coursera", "edx"]
+_FREE_PLATFORM_PRIORITY: list[str] = ["freecodecamp", "kaggle_learn", "geeksforgeeks"]
+
+
+def has_curated_match(platform: str, skill: str) -> bool:
+    registry = _CURATED_REGISTRIES.get(platform)
+    return registry is not None and _normalize(skill) in registry
+
+
+def get_curated_matches(skill: str) -> dict[str, ResolvedResource | None]:
+    """The ONLY entry point the recommender agent should use. Returns the single best verified
+    paid resource and the single best verified free resource for `skill`, or None on either side
+    when no curated (real, individually verified) match exists — callers must treat None as "don't
+    recommend anything for this side," never fall back to a generic search/catalog link."""
+    paid = next((resolve_resource(p, skill) for p in _PAID_PLATFORM_PRIORITY if has_curated_match(p, skill)), None)
+    free = next((resolve_resource(p, skill) for p in _FREE_PLATFORM_PRIORITY if has_curated_match(p, skill)), None)
+    return {"paid": paid, "free": free}

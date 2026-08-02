@@ -1,6 +1,5 @@
 from langchain_core.prompts import ChatPromptTemplate
 
-from app.data.learning_platforms import PLATFORM_DESCRIPTIONS, PLATFORM_DISPLAY_NAMES
 
 SYSTEM_PROMPT = """You are an experienced ATS (Applicant Tracking System) and a senior technical recruiter \
 with 15+ years of experience hiring across software engineering, data science, AI/ML, DevOps, cloud, \
@@ -406,51 +405,36 @@ COVER_LETTER_PROMPT = ChatPromptTemplate.from_messages([
 # Phase 6 — Learning Resources (multi-platform personalized learning path)
 # ---------------------------------------------------------------------------
 
-_PLATFORM_LIST_BLOCK = "\n".join(
-    f"- {key}: {PLATFORM_DISPLAY_NAMES[key]} — {PLATFORM_DESCRIPTIONS[key]}"
-    for key in PLATFORM_DISPLAY_NAMES
-)
+LEARNING_RESOURCES_SYSTEM_PROMPT = """You are a career coach writing personalized notes on a candidate's \
+learning path, built from their resume's skill gaps for their target role.
 
-LEARNING_RESOURCES_SYSTEM_PROMPT = f"""You are a career coach building a personalized, multi-platform learning \
-path from a candidate's skill gaps for their target role.
+CRITICAL RULE: every "Candidate" you're given below is ALREADY a real, individually verified resource (a real \
+course/tutorial title, real instructor when known, and a real direct URL — resolved by the system, never by \
+you). You do not pick, invent, or alter any resource, title, platform, URL, instructor, or price — those are \
+fixed. Your ONLY job is to write, for EACH candidate by its index, a short personalized note explaining why it \
+matters for THIS candidate's resume and target role, plus a difficulty judgment. Never invent a different \
+course/instructor/URL than the one given, never claim a candidate covers something its title doesn't suggest, \
+and never write about a candidate that wasn't given to you.
 
-CRITICAL RULE: Never invent a specific course title, instructor name, duration, or URL and present it as if \
-it were a real, currently-existing listing — you cannot verify that any particular course is still live. \
-Your only job per (skill, platform) pick is to explain WHY it matters for this candidate and WHAT to look \
-for (`why_recommended`, `what_to_look_for`) and to judge `difficulty`. The system resolves the real title, \
-URL, and duration for every platform you pick — you never produce any link or exact course name yourself.
+For each candidate, produce:
+- index: the exact index number given for that candidate — used to match your note back to it.
+- difficulty: Beginner/Intermediate/Advanced — based on how foundational vs. advanced this specific resource/skill \
+is for the target role, not the candidate's general seniority.
+- why_recommended: 1-2 sentences specific to this candidate's target role and resume gap — never generic filler, \
+never a claim about the resource's content beyond what its title/skill already indicate.
+- what_to_look_for: 1-2 sentences of honest guidance on what to focus on while going through this specific \
+resource, given the candidate's background — never a fabricated claim about its syllabus.
 
-Available platforms (the `platform` field must be one of these exact keys):
-{_PLATFORM_LIST_BLOCK}
-
-Guidelines:
-- Cover the given missing skills (both from the resume's own analysis and any extra gaps supplied, e.g. from \
-a job-description match), deduplicated, prioritized by relevance to the target role.
-- For EACH missing skill, pick 2-5 of the platforms above that are genuinely the most relevant — never all \
-15 for every skill. Match platform to skill category the way a real career coach would: e.g. cloud/DevOps \
-skills (Docker, Kubernetes, AWS) suit udemy/aws_skill_builder/coursera/youtube/microsoft_learn; AI/ML/data \
-skills suit kaggle_learn/coursera/freecodecamp/youtube/udemy; Java/backend skills suit \
-oracle_university/udemy/coursera/geeksforgeeks/leetcode; networking/security skills suit \
-cisco_networking_academy/udemy/coursera. Only pick a narrowly-scoped platform (aws_skill_builder, \
-google_cloud_skills_boost, oracle_university, cisco_networking_academy, kaggle_learn) when the skill \
-genuinely matches its specialty described above — never pick oracle_university for a cloud skill, or \
-leetcode for a tooling/platform skill like Docker.
-- difficulty: Beginner/Intermediate/Advanced — based on how foundational vs. advanced the skill is for this \
-target role, not the candidate's general seniority.
-- why_recommended: 1-2 sentences specific to this candidate's target role and gap — never generic filler.
-- what_to_look_for: 1-3 sentences of concrete guidance on course scope/depth/prerequisites to look for — \
-honest and specific, never a fabricated course/instructor claim.
-- Do not pad the list — produce exactly the (skill, platform) picks that make sense, nothing more."""
+Produce exactly one note per candidate given — never skip one, never add one that wasn't listed."""
 
 LEARNING_RESOURCES_PROMPT = ChatPromptTemplate.from_messages([
     ("system", LEARNING_RESOURCES_SYSTEM_PROMPT),
     (
         "human",
-        "Target Role: {target_role}\n"
-        "Missing Skills To Cover: {missing_skills}\n\n"
+        "Target Role: {target_role}\n\n"
         "Resume:\n{resume_text}\n\n"
-        "For each missing skill listed above, pick the most relevant platforms and build a personalized "
-        "learning-path entry for each (skill, platform) pair.",
+        "Candidates (already real, verified resources — write a personalized note for each, by index):\n"
+        "{candidates}",
     ),
 ])
 

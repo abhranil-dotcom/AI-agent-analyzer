@@ -126,7 +126,8 @@ async def recommend_learning_resources(
     body: RecommendLearningResourcesRequest,
     agent: LearningResourceRecommenderAgent = Depends(get_learning_resource_recommender_agent),
 ) -> RecommendLearningResourcesResponse:
-    """Turn missing skills (resume + optional JD gaps) into a personalized, Udemy-search-linked learning path."""
+    """Turn missing skills (resume + optional JD gaps) into a personalized learning path built only from
+    individually verified real courses/resources — never a generic platform search/browse link."""
     try:
         resources = await agent.recommend(
             body.extracted_text, body.target_role, body.analysis, body.extra_missing_skills
