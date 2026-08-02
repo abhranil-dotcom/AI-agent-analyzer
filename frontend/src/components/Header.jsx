@@ -6,6 +6,7 @@ import ThemeToggle from './ThemeToggle.jsx'
 
 const NAV_LINKS = [
   { label: 'Dashboard', to: '/' },
+  { label: 'Career Toolkit', to: '/toolkit' },
   { label: 'Resume History', to: '/resume-history' },
   { label: 'Interview History', to: '/interview-history' },
 ]

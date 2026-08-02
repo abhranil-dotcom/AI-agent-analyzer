@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { Wrench } from 'lucide-react'
+import EmptyState from './components/EmptyState.jsx'
 import Header from './components/Header.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
@@ -15,6 +17,7 @@ import CompaniesPage from './pages/CompaniesPage.jsx'
 import InterviewPrepPage from './pages/InterviewPrepPage.jsx'
 import MockInterviewPage from './pages/MockInterviewPage.jsx'
 import ToolkitHubPage from './pages/ToolkitHubPage.jsx'
+import ToolkitEntryPage from './pages/ToolkitEntryPage.jsx'
 import JDMatchPage from './pages/JDMatchPage.jsx'
 import ResumeRewritePage from './pages/ResumeRewritePage.jsx'
 import SkillGapPage from './pages/SkillGapPage.jsx'
@@ -26,6 +29,24 @@ import ResumeComparePage from './pages/ResumeComparePage.jsx'
 import InterviewHistoryPage from './pages/InterviewHistoryPage.jsx'
 import InterviewHistoryDetailPage from './pages/InterviewHistoryDetailPage.jsx'
 import NotFoundPage from './pages/NotFoundPage.jsx'
+
+// The 5 individual toolkit tools need the raw extracted resume text (`result`), not just the
+// saved `analysis` scores/summary — that raw text is never persisted to Resume History (only the
+// analysis output is), so it's only available in-memory after a fresh upload+analyze in this
+// session. When Career Toolkit was reached via the navbar's ToolkitEntryPage (loading a past
+// analysis instead), `analysis` exists but `result` doesn't — shown here instead of crashing on
+// `result.extracted_text` inside a tool page.
+function MissingResumeTextNotice() {
+  return (
+    <EmptyState
+      icon={Wrench}
+      title="Resume text unavailable"
+      description="This tool needs your original resume text, which isn't saved with your past analyses. Please upload and analyze your resume again to use it."
+      ctaLabel="Upload Your Resume"
+      ctaTo="/upload"
+    />
+  )
+}
 
 export default function App() {
   // All pipeline state is lifted here so it survives navigation between pages
@@ -159,7 +180,12 @@ export default function App() {
                     {analysis ? (
                       <ToolkitHubPage targetRole={targetRole} selectedCompany={selectedCompany} />
                     ) : (
-                      <Navigate to="/upload" replace />
+                      <ToolkitEntryPage
+                        targetRole={targetRole}
+                        selectedCompany={selectedCompany}
+                        onAnalysisComplete={setAnalysis}
+                        onTargetRoleChange={setTargetRole}
+                      />
                     )}
                   </ProtectedRoute>
                 }
@@ -168,10 +194,12 @@ export default function App() {
                 path="/toolkit/match-jd"
                 element={
                   <ProtectedRoute>
-                    {analysis ? (
-                      <JDMatchPage result={result} targetRole={targetRole} analysis={analysis} />
-                    ) : (
+                    {!analysis ? (
                       <Navigate to="/upload" replace />
+                    ) : !result ? (
+                      <MissingResumeTextNotice />
+                    ) : (
+                      <JDMatchPage result={result} targetRole={targetRole} analysis={analysis} />
                     )}
                   </ProtectedRoute>
                 }
@@ -180,10 +208,12 @@ export default function App() {
                 path="/toolkit/rewrite"
                 element={
                   <ProtectedRoute>
-                    {analysis ? (
-                      <ResumeRewritePage result={result} targetRole={targetRole} analysis={analysis} />
-                    ) : (
+                    {!analysis ? (
                       <Navigate to="/upload" replace />
+                    ) : !result ? (
+                      <MissingResumeTextNotice />
+                    ) : (
+                      <ResumeRewritePage result={result} targetRole={targetRole} analysis={analysis} />
                     )}
                   </ProtectedRoute>
                 }
@@ -192,10 +222,12 @@ export default function App() {
                 path="/toolkit/skill-gap"
                 element={
                   <ProtectedRoute>
-                    {analysis ? (
-                      <SkillGapPage result={result} targetRole={targetRole} analysis={analysis} />
-                    ) : (
+                    {!analysis ? (
                       <Navigate to="/upload" replace />
+                    ) : !result ? (
+                      <MissingResumeTextNotice />
+                    ) : (
+                      <SkillGapPage result={result} targetRole={targetRole} analysis={analysis} />
                     )}
                   </ProtectedRoute>
                 }
@@ -204,10 +236,12 @@ export default function App() {
                 path="/toolkit/learning-resources"
                 element={
                   <ProtectedRoute>
-                    {analysis ? (
-                      <LearningResourcesPage result={result} targetRole={targetRole} analysis={analysis} />
-                    ) : (
+                    {!analysis ? (
                       <Navigate to="/upload" replace />
+                    ) : !result ? (
+                      <MissingResumeTextNotice />
+                    ) : (
+                      <LearningResourcesPage result={result} targetRole={targetRole} analysis={analysis} />
                     )}
                   </ProtectedRoute>
                 }
@@ -216,15 +250,17 @@ export default function App() {
                 path="/toolkit/cover-letter"
                 element={
                   <ProtectedRoute>
-                    {analysis ? (
+                    {!analysis ? (
+                      <Navigate to="/upload" replace />
+                    ) : !result ? (
+                      <MissingResumeTextNotice />
+                    ) : (
                       <CoverLetterPage
                         result={result}
                         targetRole={targetRole}
                         analysis={analysis}
                         selectedCompany={selectedCompany}
                       />
-                    ) : (
-                      <Navigate to="/upload" replace />
                     )}
                   </ProtectedRoute>
                 }
