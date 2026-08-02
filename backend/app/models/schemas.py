@@ -537,7 +537,9 @@ class SaveInterviewHistoryRequest(BaseModel):
 
 
 class InterviewHistoryEntry(BaseModel):
-    """Summary row shown in the Interview History list and the Dashboard's 'recent interview' card."""
+    """Summary row shown in the Interview History list and the Dashboard's 'recent interview' card.
+    Includes the other session-level scores (already stored, computed once in save_interview_history)
+    so the history list can show a progress trend without an extra per-entry detail fetch."""
 
     id: int
     company_slug: str
@@ -545,15 +547,15 @@ class InterviewHistoryEntry(BaseModel):
     target_role: str
     interview_date: datetime
     overall_score: int
+    communication_score: int
+    technical_score: int
+    confidence_score: int
 
     model_config = {"from_attributes": True}
 
 
 class InterviewHistoryDetail(InterviewHistoryEntry):
     duration_seconds: int | None
-    communication_score: int
-    technical_score: int
-    confidence_score: int
     qa: list[InterviewQAEntry]
 
 

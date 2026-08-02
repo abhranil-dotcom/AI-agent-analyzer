@@ -6,6 +6,7 @@ import { useToast } from '../context/ToastContext.jsx'
 import ConfirmDialog from '../components/ConfirmDialog.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import HistorySkeleton from '../components/HistorySkeleton.jsx'
+import InterviewProgressSection from '../components/InterviewProgressSection.jsx'
 
 export default function InterviewHistoryPage() {
   const navigate = useNavigate()
@@ -77,6 +78,8 @@ export default function InterviewHistoryPage() {
           ctaTo="/upload"
         />
       )}
+
+      {entries !== null && entries.length > 0 && <InterviewProgressSection entries={entries} />}
 
       {entries !== null && entries.length > 0 && (
         <div className="flex flex-col gap-4">

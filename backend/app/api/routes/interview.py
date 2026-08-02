@@ -133,9 +133,6 @@ async def save_interview_history(
     return InterviewHistoryDetail(
         **InterviewHistoryEntry.model_validate(entry).model_dump(),
         duration_seconds=entry.duration_seconds,
-        communication_score=entry.communication_score,
-        technical_score=entry.technical_score,
-        confidence_score=entry.confidence_score,
         qa=entry.qa_json,
     )
 
@@ -171,9 +168,6 @@ async def get_interview_history(
     return InterviewHistoryDetail(
         **InterviewHistoryEntry.model_validate(entry).model_dump(),
         duration_seconds=entry.duration_seconds,
-        communication_score=entry.communication_score,
-        technical_score=entry.technical_score,
-        confidence_score=entry.confidence_score,
         qa=entry.qa_json,
     )
 
