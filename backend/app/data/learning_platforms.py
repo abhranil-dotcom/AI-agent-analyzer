@@ -37,6 +37,7 @@ LearningPlatformKey = Literal[
     "geeksforgeeks",
     "leetcode",
     "hackerrank",
+    "official_docs",
 ]
 
 PLATFORM_DISPLAY_NAMES: dict[str, str] = {
@@ -55,6 +56,7 @@ PLATFORM_DISPLAY_NAMES: dict[str, str] = {
     "geeksforgeeks": "GeeksforGeeks",
     "leetcode": "LeetCode",
     "hackerrank": "HackerRank",
+    "official_docs": "Official Documentation",
 }
 
 # Fed into the LLM prompt so it can judge, per missing skill, which platforms are actually
@@ -75,6 +77,7 @@ PLATFORM_DESCRIPTIONS: dict[str, str] = {
     "geeksforgeeks": "Free reference articles and tutorials — strong for CS fundamentals, DSA, and language-specific topics",
     "leetcode": "Coding practice problems organized by topic — strong for algorithms/DSA and interview prep, not for cloud/tooling skills",
     "hackerrank": "Coding practice problems and skill certifications across languages and CS fundamentals",
+    "official_docs": "The technology's own official documentation/getting-started guide — authoritative and free, strong for framework/language/cloud fundamentals",
 }
 
 
@@ -129,6 +132,7 @@ FREE_PLATFORMS: frozenset[str] = frozenset(
         "geeksforgeeks",
         "leetcode",
         "hackerrank",
+        "official_docs",
     }
 )
 
@@ -525,6 +529,44 @@ FREECODECAMP_RESOURCES: dict[str, _CuratedEntry] = {
     ),
 }
 
+# The technology's own official docs/getting-started guide — canonical, extremely stable entry
+# points (individually confirmed live in August 2026), free, and a genuinely different source of
+# authority than freeCodeCamp/GeeksforGeeks, so a skill curated on both surfaces real platform
+# variety rather than always defaulting to the same free platform.
+OFFICIAL_DOCS_RESOURCES: dict[str, _CuratedEntry] = {
+    "angular": _CuratedEntry(title="What is Angular? — Official Angular Documentation", url="https://angular.dev/overview"),
+    "react": _CuratedEntry(title="Quick Start — Official React Documentation", url="https://react.dev/learn"),
+    "typescript": _CuratedEntry(
+        title="The TypeScript Handbook — Official TypeScript Documentation",
+        url="https://www.typescriptlang.org/docs/handbook/intro.html",
+    ),
+    "rxjs": _CuratedEntry(title="RxJS Overview — Official RxJS Documentation", url="https://rxjs.dev/guide/overview"),
+    "python": _CuratedEntry(
+        title="The Python Tutorial — Official Python Documentation", url="https://docs.python.org/3/tutorial/index.html"
+    ),
+    "node.js": _CuratedEntry(title="Node.js Documentation", url="https://nodejs.org/en/docs"),
+    "node": _CuratedEntry(title="Node.js Documentation", url="https://nodejs.org/en/docs"),
+    "docker": _CuratedEntry(title="Get Started — Official Docker Documentation", url="https://docs.docker.com/get-started/"),
+    "kubernetes": _CuratedEntry(
+        title="Kubernetes Tutorials — Official Kubernetes Documentation", url="https://kubernetes.io/docs/tutorials/"
+    ),
+    "mongodb": _CuratedEntry(
+        title="Getting Started with MongoDB — Official MongoDB Documentation",
+        url="https://www.mongodb.com/docs/manual/tutorial/getting-started/",
+    ),
+    "git": _CuratedEntry(title="Git Documentation", url="https://git-scm.com/doc"),
+    "github": _CuratedEntry(title="Git Documentation", url="https://git-scm.com/doc"),
+    "vue": _CuratedEntry(title="Introduction — Official Vue.js Documentation", url="https://vuejs.org/guide/introduction.html"),
+    "vue.js": _CuratedEntry(title="Introduction — Official Vue.js Documentation", url="https://vuejs.org/guide/introduction.html"),
+    "spring boot": _CuratedEntry(
+        title="Getting Started — Building an Application with Spring Boot", url="https://spring.io/guides/gs/spring-boot/"
+    ),
+    "spring": _CuratedEntry(
+        title="Getting Started — Building an Application with Spring Boot", url="https://spring.io/guides/gs/spring-boot/"
+    ),
+    "java": _CuratedEntry(title="The Java Tutorials — Official Oracle Documentation", url="https://docs.oracle.com/javase/tutorial/"),
+}
+
 # Search/browse URL builders for platforms without (or outside) a curated match. Every entry
 # here is a real, functional endpoint — never a guessed deep link to a specific listing.
 _SEARCH_URL_BUILDERS = {
@@ -559,6 +601,7 @@ _CURATED_REGISTRIES: dict[str, dict[str, _CuratedEntry]] = {
     "udemy": UDEMY_COURSES,
     "coursera": COURSERA_COURSES,
     "freecodecamp": FREECODECAMP_RESOURCES,
+    "official_docs": OFFICIAL_DOCS_RESOURCES,
 }
 
 _CURATED_URL_TEMPLATES: dict[str, str] = {
@@ -641,12 +684,15 @@ def resolve_resource(platform: str, skill: str) -> ResolvedResource:
     raise ValueError(f"Unknown learning platform key: {platform!r}")
 
 
-# Preference order when a skill has more than one curated match on the paid/free side — picks the
-# single best one per side rather than showing every possible platform for the same skill.
+# Preference order when a skill has curated matches on more than one platform. Used as a priority
+# for CAPPING (see _MAX_MATCHES_PER_SIDE), not a "pick only one" cutoff — get_curated_matches()
+# returns every match up to the cap, so a skill curated on both Udemy and Coursera surfaces both,
+# giving real platform diversity instead of always defaulting to the same top platform.
 # leetcode is deliberately last: practice-problem pages are a weaker "learning resource" than an
 # actual tutorial/course, so it's only used when nothing else (freecodecamp/kaggle_learn/gfg) matches.
 _PAID_PLATFORM_PRIORITY: list[str] = ["udemy", "coursera", "edx"]
-_FREE_PLATFORM_PRIORITY: list[str] = ["freecodecamp", "kaggle_learn", "geeksforgeeks", "leetcode"]
+_FREE_PLATFORM_PRIORITY: list[str] = ["freecodecamp", "official_docs", "kaggle_learn", "geeksforgeeks", "leetcode"]
+_MAX_MATCHES_PER_SIDE = 2
 
 
 def has_curated_match(platform: str, skill: str) -> bool:
@@ -654,11 +700,17 @@ def has_curated_match(platform: str, skill: str) -> bool:
     return registry is not None and _find_curated_entry(registry, skill) is not None
 
 
-def get_curated_matches(skill: str) -> dict[str, ResolvedResource | None]:
-    """The ONLY entry point the recommender agent should use. Returns the single best verified
-    paid resource and the single best verified free resource for `skill`, or None on either side
-    when no curated (real, individually verified) match exists — callers must treat None as "don't
-    recommend anything for this side," never fall back to a generic search/catalog link."""
-    paid = next((resolve_resource(p, skill) for p in _PAID_PLATFORM_PRIORITY if has_curated_match(p, skill)), None)
-    free = next((resolve_resource(p, skill) for p in _FREE_PLATFORM_PRIORITY if has_curated_match(p, skill)), None)
+def get_curated_matches(skill: str) -> dict[str, list[ResolvedResource]]:
+    """The ONLY entry point the recommender agent should use. Returns up to _MAX_MATCHES_PER_SIDE
+    verified paid resources and up to _MAX_MATCHES_PER_SIDE verified free resources for `skill`,
+    drawn from DIFFERENT platforms when more than one has a real curated match — an empty list on
+    either side means no curated (real, individually verified) match exists there. Callers must
+    treat an empty list as "don't recommend anything for this side," never fall back to a generic
+    search/catalog link."""
+    paid = [
+        resolve_resource(p, skill) for p in _PAID_PLATFORM_PRIORITY if has_curated_match(p, skill)
+    ][:_MAX_MATCHES_PER_SIDE]
+    free = [
+        resolve_resource(p, skill) for p in _FREE_PLATFORM_PRIORITY if has_curated_match(p, skill)
+    ][:_MAX_MATCHES_PER_SIDE]
     return {"paid": paid, "free": free}

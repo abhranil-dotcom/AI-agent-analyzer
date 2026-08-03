@@ -33,8 +33,9 @@ class LearningResourceRecommenderAgent:
     individually verified real resources (see app.data.learning_platforms.get_curated_matches).
 
     Unlike a naive "ask the LLM to recommend a course" design, resource selection is entirely
-    deterministic: for each missing skill, the best verified paid resource and best verified free
-    resource (if any exist) are looked up directly — never LLM-picked, never a generic search or
+    deterministic: for each missing skill, up to 2 verified paid resources and up to 2 verified
+    free resources are looked up directly (from different platforms when more than one has a real
+    curated match — see get_curated_matches) — never LLM-picked, never a generic search or
     catalog-browse link. The LLM's only role is writing a short personalized why/what-to-look-for
     note per resource and judging its difficulty; it never sees or influences which resource is
     used, so it cannot recommend something that doesn't exist. A missing skill with no verified
@@ -67,15 +68,17 @@ class LearningResourceRecommenderAgent:
         logger.info("Recommending learning resources for role '%s' (%d skills)", target_role, len(missing_skills))
 
         # Deterministic candidate selection — happens BEFORE any LLM call, so the LLM only ever
-        # narrates real, already-resolved resources. Each skill contributes at most one paid and
-        # one free candidate; skills with no verified match on a side simply contribute nothing there.
+        # narrates real, already-resolved resources. Each skill can contribute more than one paid
+        # and more than one free candidate (from different platforms — see get_curated_matches'
+        # cap), so a skill curated on both Udemy and Coursera surfaces both instead of only ever
+        # the top-priority platform. Skills with no verified match on a side contribute nothing there.
         candidates: list[tuple[str, ResolvedResource]] = []
         for skill in missing_skills:
             matches = get_curated_matches(skill)
-            if matches["paid"] is not None:
-                candidates.append((skill, matches["paid"]))
-            if matches["free"] is not None:
-                candidates.append((skill, matches["free"]))
+            for resolved in matches["paid"]:
+                candidates.append((skill, resolved))
+            for resolved in matches["free"]:
+                candidates.append((skill, resolved))
 
         if not candidates:
             logger.info("No verified curated resources for any missing skill — returning empty list")
