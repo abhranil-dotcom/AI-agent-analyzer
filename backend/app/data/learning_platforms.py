@@ -16,6 +16,7 @@ is deliberately never reached through get_curated_matches(), since a search-resu
 individually verified specific resource.
 """
 
+import re
 from dataclasses import dataclass
 from typing import Literal
 from urllib.parse import quote
@@ -106,7 +107,10 @@ class _CuratedEntry:
 
 
 def _normalize(skill: str) -> str:
-    return " ".join(skill.strip().lower().split())
+    # Hyphens -> spaces before collapsing whitespace, so "Object-Oriented Programming" normalizes
+    # the same as a curated key written "object oriented programming" — resume-analyzer skill
+    # phrasing varies on this constantly (front-end/front end, CI-CD/CI CD, etc.).
+    return " ".join(skill.strip().lower().replace("-", " ").split())
 
 
 # Platforms whose actual learning content is free to access (no paywall on the material itself,
@@ -336,6 +340,48 @@ UDEMY_COURSES: dict[str, _CuratedEntry] = {
         instructor="Kirill Eremenko, Hadelin de Ponteves",
         price_status="Check current price",
     ),
+    "data structures and algorithms": _CuratedEntry(
+        title="Master the Coding Interview: Data Structures + Algorithms",
+        url="https://www.udemy.com/course/master-the-coding-interview-data-structures-algorithms/",
+        instructor="Andrei Neagoie",
+        price_status="Check current price",
+    ),
+    "data structures": _CuratedEntry(
+        title="Master the Coding Interview: Data Structures + Algorithms",
+        url="https://www.udemy.com/course/master-the-coding-interview-data-structures-algorithms/",
+        instructor="Andrei Neagoie",
+        price_status="Check current price",
+    ),
+    "algorithms": _CuratedEntry(
+        title="Master the Coding Interview: Data Structures + Algorithms",
+        url="https://www.udemy.com/course/master-the-coding-interview-data-structures-algorithms/",
+        instructor="Andrei Neagoie",
+        price_status="Check current price",
+    ),
+    "dsa": _CuratedEntry(
+        title="Master the Coding Interview: Data Structures + Algorithms",
+        url="https://www.udemy.com/course/master-the-coding-interview-data-structures-algorithms/",
+        instructor="Andrei Neagoie",
+        price_status="Check current price",
+    ),
+    "rest api": _CuratedEntry(
+        title="Master Java Web Services and REST API with Spring Boot",
+        url="https://www.udemy.com/course/spring-web-services-tutorial/",
+        instructor="in28minutes (Ranga Karanam)",
+        price_status="Check current price",
+    ),
+    "rest apis": _CuratedEntry(
+        title="Master Java Web Services and REST API with Spring Boot",
+        url="https://www.udemy.com/course/spring-web-services-tutorial/",
+        instructor="in28minutes (Ranga Karanam)",
+        price_status="Check current price",
+    ),
+    "design patterns": _CuratedEntry(
+        title="Low Level System Design, Design Patterns & SOLID Principles",
+        url="https://www.udemy.com/course/low-level-system-design/",
+        instructor="Prateek Narang",
+        price_status="Check current price",
+    ),
 }
 
 # Same discipline as UDEMY_COURSES — individually verified real Coursera specializations/
@@ -469,6 +515,14 @@ FREECODECAMP_RESOURCES: dict[str, _CuratedEntry] = {
         title="Learn Cybersecurity from Harvard University",
         url="https://www.freecodecamp.org/news/learn-cybersecurity-from-harvard-university/",
     ),
+    "object oriented programming": _CuratedEntry(
+        title="Learn Object Oriented Programming Basics in 30 Minutes: A Free Crash Course",
+        url="https://www.freecodecamp.org/news/object-oriented-programming-crash-course/",
+    ),
+    "oop": _CuratedEntry(
+        title="Learn Object Oriented Programming Basics in 30 Minutes: A Free Crash Course",
+        url="https://www.freecodecamp.org/news/object-oriented-programming-crash-course/",
+    ),
 }
 
 # Search/browse URL builders for platforms without (or outside) a curated match. Every entry
@@ -522,16 +576,29 @@ _CURATED_TITLE_TEMPLATES: dict[str, str] = {
 }
 
 
+def _find_curated_entry(registry: dict[str, _CuratedEntry], skill: str) -> _CuratedEntry | None:
+    """Exact match first; otherwise a word-boundary-safe fuzzy fallback so real phrasing variance
+    from the resume analyzer (e.g. "Python Programming", "Data Structures and Algorithms") still
+    finds a curated entry keyed as "python" or "algorithms". Word-boundary, not a bare substring
+    check, specifically to avoid a false positive like "java" matching inside "javascript"."""
+    normalized = _normalize(skill)
+    if normalized in registry:
+        return registry[normalized]
+    for key, entry in registry.items():
+        if re.search(rf"\b{re.escape(key)}\b", normalized) or re.search(rf"\b{re.escape(normalized)}\b", key):
+            return entry
+    return None
+
+
 def resolve_resource(platform: str, skill: str) -> ResolvedResource:
     """Deterministically resolves the real title/URL/duration/instructor/price for a (platform,
     skill) pair. Never LLM-driven — see module docstring."""
-    normalized = _normalize(skill)
     platform_name = PLATFORM_DISPLAY_NAMES[platform]
     is_free = platform in FREE_PLATFORMS
 
     registry = _CURATED_REGISTRIES.get(platform)
     if registry is not None:
-        entry = registry.get(normalized)
+        entry = _find_curated_entry(registry, skill)
         if entry is not None:
             # Udemy/Coursera entries carry a fully verified real URL directly; the other curated
             # registries build one from a verified slug + that platform's stable URL template.
@@ -545,7 +612,10 @@ def resolve_resource(platform: str, skill: str) -> ResolvedResource:
                 entry.duration,
                 is_curated=True,
                 instructor=entry.instructor,
-                price_status=entry.price_status,
+                # Falls back to the platform's default status when a curated entry predates
+                # per-entry pricing (older kaggle_learn/geeksforgeeks/leetcode/edx entries) — every
+                # paid-platform card still shows a price/status, free platforms just show FREE.
+                price_status=entry.price_status or _FALLBACK_PRICE_STATUS.get(platform),
                 is_free=is_free,
             )
 
@@ -573,13 +643,15 @@ def resolve_resource(platform: str, skill: str) -> ResolvedResource:
 
 # Preference order when a skill has more than one curated match on the paid/free side — picks the
 # single best one per side rather than showing every possible platform for the same skill.
+# leetcode is deliberately last: practice-problem pages are a weaker "learning resource" than an
+# actual tutorial/course, so it's only used when nothing else (freecodecamp/kaggle_learn/gfg) matches.
 _PAID_PLATFORM_PRIORITY: list[str] = ["udemy", "coursera", "edx"]
-_FREE_PLATFORM_PRIORITY: list[str] = ["freecodecamp", "kaggle_learn", "geeksforgeeks"]
+_FREE_PLATFORM_PRIORITY: list[str] = ["freecodecamp", "kaggle_learn", "geeksforgeeks", "leetcode"]
 
 
 def has_curated_match(platform: str, skill: str) -> bool:
     registry = _CURATED_REGISTRIES.get(platform)
-    return registry is not None and _normalize(skill) in registry
+    return registry is not None and _find_curated_entry(registry, skill) is not None
 
 
 def get_curated_matches(skill: str) -> dict[str, ResolvedResource | None]:
